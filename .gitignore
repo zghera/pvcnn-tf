@@ -61,8 +61,12 @@ target/
 venv/
 ENV/
 
-hooks/
-pylint.sh
-.pylintrc
+# Local prototyping files
+prototyping/
 
+# Linting and formatting
+.pylintrc
+*.toml
+
+# VSCode
 .vscode/
