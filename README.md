@@ -1,2 +1,31 @@
 # Point-Voxel CNN TensorFlow
-TensorFlow Implementation of Point-Voxel CNN for Efficient 3D Deep Learning [NeurIPS 2019, MIT HAN Lab]
+This repo is a TensorFlow 2 Implementation of Point-Voxel CNN for Efficient 3D Deep Learning (see [arXiv paper](https://arxiv.org/abs/1907.03739), [MIT HAN Lab Repo](https://github.com/mit-han-lab/pvcnn)).
+
+# Prerequisites
+The code is built using the libraries listed in [requirements.txt](https://github.com/zghera/pvcnn-tf/blob/master/requirements.txt).
+
+# Data Preparation
+## S3DIS
+I re-use the data pre-processing used in [PVCNN](https://github.com/mit-han-lab/pvcnn) (see [`data/s3dis/`](data/s3dis/prepare_data.py)). One should first download the [S3DIS dataset from here](http://buildingparser.stanford.edu/dataset.html), then run
+```
+python data/s3dis/prepare_data.py -d [path to unzipped dataset dir]
+```
+
+# Performance of Pretrained Models
+TODO
+
+# Evaluating Pretrained Models
+TODO
+
+
+# Training
+TODO
+
+
+# License 
+This repository is released under the MIT license. This includes the [license](https://github.com/mit-han-lab/pvcnn/blob/master/LICENSE) from the original authors. See [LICENSE](https://github.com/zghera/pvcnn-tf/blob/master/LICENSE) for additional details.
+
+# Acknowledgement
+The following code/modules were modified from [Point-Voxel CNN for Efficient 3D Deep Learning](https://github.com/mit-han-lab/pvcnn) (MIT License):
+* [Data pre-processing](https://github.com/zghera/pvcnn-tf/blob/master/data/s3dis/prepare_data.py)
+* ...
