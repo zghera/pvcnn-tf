@@ -11,6 +11,9 @@ I re-use the data pre-processing used in [PVCNN](https://github.com/mit-han-lab/
 python data/s3dis/prepare_data.py -d [path to unzipped dataset dir]
 ```
 
+You can run [`s3dis_viz.py`](https://github.com/zghera/pvcnn-tf/blob/master/s3dis_viz.py) for a visualizaion of the dataset. Here is one example output with clutter, ceiling, floor, and wall points removed:
+<p align="center"><img src="/assets/s3dis-data-pipeline-output.png" alt="s3dis-data-pipeline-output" width="500"/></p>
+
 # Performance of Pretrained Models
 TODO
 
