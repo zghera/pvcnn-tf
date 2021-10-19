@@ -29,7 +29,7 @@ TODO
 This repository is released under the MIT license. This includes the [license](https://github.com/mit-han-lab/pvcnn/blob/master/LICENSE) from the original authors. See [LICENSE](https://github.com/zghera/pvcnn-tf/blob/master/LICENSE) for additional details.
 
 # Acknowledgement
-The following code/modules were modified from [Point-Voxel CNN for Efficient 3D Deep Learning](https://github.com/mit-han-lab/pvcnn) (MIT License):
+The following code segments / modules were modified from [the official PVCNN implementation](https://github.com/mit-han-lab/pvcnn) (MIT License):
 * [Data pre-processing.](https://github.com/zghera/pvcnn-tf/blob/master/data/s3dis/prepare_data.py)
 * [Training and evaluation.](https://github.com/zghera/pvcnn-tf/blob/master/train.py)
 * [Experiment configuration.](https://github.com/zghera/pvcnn-tf/blob/master/utils/config.py)
