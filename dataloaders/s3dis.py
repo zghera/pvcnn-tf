@@ -16,6 +16,7 @@ def create_s3dis_dataset(
   num_points: int,
   use_normalized_coords: bool,
   holdout_area: int,
+  is_deterministic: bool,
   is_train_split: bool,
 ) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
   """Creates train or test `tf.data.Dataset`.
@@ -37,7 +38,7 @@ def create_s3dis_dataset(
         filename, dataset, spec
       ),
       num_parallel_calls=AUTOTUNE,
-      deterministic=False,
+      deterministic=is_deterministic,
     )
     for h5_dataset, spec in h5_dataset_specs.items()
   )
@@ -139,6 +140,7 @@ class S3DIS(dict):
     num_points: int,
     use_normalized_coords: bool,
     holdout_area: int,
+    is_deterministic: bool,
     split=None,
   ):
     """
@@ -150,6 +152,7 @@ class S3DIS(dict):
       num_points: Number of points to process for each scene.
       use_normalized_coords: Whether include the normalized coords in features.
       holdout_area: Area to hold out for testing.
+      is_deterministic: When False, the dataset can yield elements out of order.
       split: 'train', 'test', or None. None will create both the train and
              test splits.
     """
@@ -166,5 +169,6 @@ class S3DIS(dict):
         num_points,
         use_normalized_coords,
         holdout_area,
+        is_deterministic,
         is_train_split=(split == "train"),
       )
