@@ -18,7 +18,7 @@ def create_s3dis_dataset(
   holdout_area: int,
   is_deterministic: bool,
   is_train_split: bool,
-) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
+) -> tf.data.Dataset:
   """Creates train or test `tf.data.Dataset`.
   Args:
     is_train_split: True if create train dataset. False if create test dataset.
@@ -126,7 +126,7 @@ def _random_sample_data(
   return data[:-3, :], label
 
 
-class S3DIS(dict):
+class DatasetS3DIS(dict):
   """
   Holds the train and/or test split `tf.data.Dataset` object(s) for the S3DIS
   dataset.
