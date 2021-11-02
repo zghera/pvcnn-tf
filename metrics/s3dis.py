@@ -1,57 +1,42 @@
+"""Evaluation metrics for PVCNN S3DIS dataset."""
 import tensorflow as tf
 
+class OverallAccuracy(tf.keras.metrics.Metric):
+  """Mean overall accuracy metric."""
+  def __init__(self, split: str, **kwargs) -> None:
+    assert split ["train", "test"]
+    super().__init__(name=f"acc/overall_{split}", **kwargs)
+    self.reset_state()
 
-class MetricS3DIS:
-  def __init__(self, metric="iou", num_classes=13):
-    super().__init__()
-    assert metric in ["overall", "class", "iou"]
-    self.metric = metric
-    self.num_classes = num_classes
-    self.reset()
+  def reset_state(self) -> None:
+    self._total_seen_num = 0
+    self._total_correct_num = 0
 
-  def reset(self):
-    self.total_seen = [0] * self.num_classes
-    self.total_correct = [0] * self.num_classes
-    self.total_positive = [0] * self.num_classes
-    self.total_seen_num = 0
-    self.total_correct_num = 0
+  def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> None:
+    # y_pred: B x 13 x num_points | y_true: B x num_points
+    y_pred_max = tf.math.argmax(y_pred, axis=1)
+    tf.debugging.assert_equal(tf.size(y_true), tf.size(y_pred_max))
 
-  def update(self, outputs: torch.Tensor, targets: torch.Tensor):
-    # outputs: B x 13 x num_points, targets: B x num_points
-    predictions = outputs.argmax(1)
-    if self.metric == "overall":
-      self.total_seen_num += targets.numel()
-      self.total_correct_num += torch.sum(targets == predictions).item()
-    else:
-      # self.metric == 'class' or self.metric == 'iou':
-      for i in range(self.num_classes):
-        itargets = targets == i
-        ipredictions = predictions == i
-        self.total_seen[i] += torch.sum(itargets).item()
-        self.total_positive[i] += torch.sum(ipredictions).item()
-        self.total_correct[i] += torch.sum(itargets & ipredictions).item()
+    self._total_seen_num += tf.size(y_true)
+    self._total_correct_num += tf.reduce_sum(
+        tf.cast(y_true == y_pred_max, tf.int32))
 
-  def compute(self):
-    if self.metric == "class":
-      accuracy = 0
-      for i in range(self.num_classes):
-        total_seen = self.total_seen[i]
-        if total_seen == 0:
-          accuracy += 1
-        else:
-          accuracy += self.total_correct[i] / total_seen
-      return accuracy / self.num_classes
-    elif self.metric == "iou":
-      iou = 0
-      for i in range(self.num_classes):
-        total_seen = self.total_seen[i]
-        if total_seen == 0:
-          iou += 1
-        else:
-          total_correct = self.total_correct[i]
-          iou += total_correct / (
-            total_seen + self.total_positive[i] - total_correct
-          )
-      return iou / self.num_classes
-    else:
-      return self.total_correct_num / self.total_seen_num
+  def result(self) -> None:
+    return self._total_correct_num / self._total_seen_num
+
+class IouAccuracy(tf.keras.metrics.MeanIoU):
+  """Mean IoU accuracy metric.
+
+  The only difference between this and the original MeanIoU Metric class
+  is handling the extra dimension in y_pred that contain the probabilities
+  of each class. Like the original implementation, just grab the most
+  likely class to match the labels for comparision.
+  """
+  def __init__(self, split: str, num_classes: int, **kwargs):
+    assert split ["train", "test"]
+    super().__init__(num_classes=num_classes, name=f"acc/iou_{split}", **kwargs)
+
+  def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
+    # y_pred: B x 13 x num_points, y_true: B x num_points
+    y_pred_max = tf.math.argmax(y_pred, axis=1)
+    super().update_state(y_true, y_pred_max)

@@ -2,7 +2,7 @@
 import tensorflow as tf
 from dataloaders.s3dis import DatasetS3DIS
 
-from metrics.s3dis import MetricS3DIS
+from metrics.s3dis import OverallAccuracy, IouAccuracy
 from utils.config import Config, configs
 
 configs.data.num_classes = 13
@@ -12,7 +12,7 @@ configs.dataset = Config(DatasetS3DIS)
 configs.dataset.data_dir = "data/s3dis/pointcnn"
 configs.dataset.shuffle_size = 10000
 configs.dataset.batch_size = 32
-configs.dataset.with_normalized_coords = True
+configs.dataset.use_normalized_coords = True
 configs.dataset.is_deterministic = configs.deterministic
 
 # test configs
@@ -23,30 +23,27 @@ configs.test.is_testing = False
 configs.metrics = Config()
 configs.metrics.test = Config()
 configs.metrics.test.overall = Config(
-  MetricS3DIS,
-  metric="overall",
+  OverallAccuracy,
   split="test",
   num_classes=configs.data.num_classes,
 )
 configs.metrics.test.iou = Config(
-  MetricS3DIS, metric="iou", split="test", num_classes=configs.data.num_classes
+  IouAccuracy, split="test", num_classes=configs.data.num_classes
 )
 configs.metrics.train = Config()
 configs.metrics.train.overall = Config(
-  MetricS3DIS,
-  metric="overall",
+  OverallAccuracy,
   split="train",
   num_classes=configs.data.num_classes,
 )
 configs.metrics.train.iou = Config(
-  MetricS3DIS, metric="iou", split="train", num_classes=configs.data.num_classes
+  IouAccuracy, split="train", num_classes=configs.data.num_classes
 )
 
 # train configs
 configs.train = Config()
-configs.train.from_scratch = False
+configs.train.restart_training = False
 configs.train.num_epochs = 50
-# configs.train.batch_size = 32 <-- I think we set this for dataset
 
 # train: metric for save best checkpoint
 configs.train.metric = "acc/iou_test"

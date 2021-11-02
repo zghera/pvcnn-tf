@@ -1,18 +1,11 @@
-"""PVCNN S3DIS Training.
+"""PVCNN S3DIS Training."""
+from typing import Tuple, Annotated
 
-TODO:
-* Update methods of Train class (e.g. save checkpoints)
-* test method of Train class
-* Initialize objects in main()
-* Verify model checkpoint saving works the way you think it does
-"""
-import argparse
 import os
-
-import tensorflow as tf
-import numpy as np
+import argparse
 from tqdm import tqdm
-from typing import Callable, Tuple
+import numpy as np
+import tensorflow as tf
 
 from utils.common import get_save_path
 
@@ -23,7 +16,7 @@ def get_configs():
 
   parser = argparse.ArgumentParser()
   parser.add_argument("configs", nargs="+")
-  parser.add_argument("--fromscratch", default=False, action="store_true")
+  parser.add_argument("--restart", default=False, action="store_true")
   parser.add_argument("--test", default=False, action="store_true")
   args, opts = parser.parse_known_args()
 
@@ -36,9 +29,8 @@ def get_configs():
   # override configs with args
   configs.update_from_arguments(*opts)
   configs.test.is_testing = args.test
-
-  configs.train.from_scratch = args.fromscratch
-  assert configs.train.from_scratch is False or configs.test.is_testing is False
+  configs.train.restart_training = args.restart
+  assert configs.train.restart_training != configs.test.is_testing
 
   if configs.test.is_testing:
     if (
@@ -84,23 +76,25 @@ class Train:
     model: tf.keras.Model,
     optimizer: tf.keras.optimizers.Optimizer,
     loss_fn: tf.keras.losses.Loss,
-    lr_scheduler: Callable[[int], float],
+    train_step: tf.Variable,
+    checkpoint_manager: tf.train.CheckpointManager,
     train_overall_metric: tf.keras.metrics.Metric,
     train_iou_metric: tf.keras.metrics.Metric,
     test_overall_metric: tf.keras.metrics.Metric,
     test_iou_metric: tf.keras.metrics.Metric,
   ) -> None:
-    self._epochs = epochs
-    self._model = model
-    self._optimizer = optimizer
-    self._loss_fn = loss_fn
-    self._lr_scheduler = lr_scheduler
-    self._train_overall_acc_metric = train_overall_metric
-    self._train_iou_acc_metric = train_iou_metric
-    self._train_loss_metric = tf.keras.metrics.Mean(name="train_loss")
-    self._test_overall_acc_metric = test_overall_metric
-    self._test_iou_acc_metric = test_iou_metric
-    self._test_loss_metric = tf.keras.metrics.Mean(name="test_loss")
+    self.epochs = epochs
+    self.model = model
+    self.optimizer = optimizer
+    self.loss_fn = loss_fn
+    self.train_step_idx = train_step
+    self.ckpt_manager = checkpoint_manager
+    self.train_overall_acc_metric = train_overall_metric
+    self.train_iou_acc_metric = train_iou_metric
+    self.train_loss_metric = tf.keras.metrics.Mean(name="train_loss")
+    self.test_overall_acc_metric = test_overall_metric
+    self.test_iou_acc_metric = test_iou_metric
+    self.test_loss_metric = tf.keras.metrics.Mean(name="test_loss")
     self.autotune = tf.data.experimental.AUTOTUNE
 
   @tf.function
@@ -108,15 +102,19 @@ class Train:
     """One train step."""
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
-      loss = self.loss_object(label, predictions)
-      loss += sum(self.model.losses)
+      loss = self.loss_fn(label, predictions)
     gradients = tape.gradient(loss, self.model.trainable_variables)
     self.optimizer.apply_gradients(
       zip(gradients, self.model.trainable_variables)
     )
 
-    self.train_loss_metric(loss)
-    self.train_acc_metric(label, predictions)
+    self.train_loss_metric.update_state(loss)
+    self.train_overall_acc_metric.update_state(label, predictions)
+    self.train_iou_acc_metric.update_state(label, predictions)
+
+    save_path = self.ckpt_manager.save()
+    print(f"Saved checkpoint for step {int(self.train_step_idx)}: {save_path}")
+    self.train_step_idx.assign_add(1)
 
   @tf.function
   def test_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
@@ -124,22 +122,15 @@ class Train:
     predictions = self.model(sample, training=False)
     loss = self.loss_object(label, predictions)
 
-    self.test_loss_metric(loss)
-    self.test_acc_metric(label, predictions)
+    self.test_loss_metric.update_state(loss)
+    self.test_overall_acc_metric.update_state(label, predictions)
+    self.test_iou_acc_metric.update_state(label, predictions)
 
   def train_loop(
     self, train_dataset: tf.data.Dataset, test_dataset: tf.data.Dataset
-  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray,]:
-    """Custom training and testing loop.
-    Args:
-      train_dataset: Training dataset
-      test_dataset: Testing dataset
-    Returns:
-      train_loss, train_accuracy, test_loss, test_accuracy
-    """
-    for epoch in tqdm(range(self.epochs), desc=f"training"):
-      self.optimizer.learning_rate = self._lr_scheduler(epoch)
-
+  ) -> Annotated[Tuple[np.ndarray], 6]:
+    """Custom training loop."""
+    for epoch in tqdm(range(self.epochs), desc="training"):
       for x, y in tqdm(train_dataset, desc=f"epoch {epoch}: train"):
         self.train_step(x, y)
       for x, y in tqdm(test_dataset, desc=f"epoch {epoch}: validation"):
@@ -149,29 +140,50 @@ class Train:
         f"Epoch {epoch}:\n"
         f"--------------\n"
         f"Train:\n"
-        f" - Loss: {self._train_loss_metric.result()}\n"
-        f" - Overall Accuracy: {self._train_overall_acc_metric.result()}\n"
-        f" - IOU Accuracy: {self._train_iou_acc_metric.result()}\n"
+        f" - Loss: {self.train_loss_metric.result()}\n"
+        f" - Overall Accuracy: {self.train_overall_acc_metric.result()}\n"
+        f" - IOU Accuracy: {self.train_iou_acc_metric.result()}\n"
         f"Validation:\n"
-        f" - Loss: {self._test_loss_metric.result()}\n"
-        f" - Overall Accuracy: {self._test_overall_acc_metric.result()}\n"
-        f" - IOU Accuracy: {self._test_iou_acc_metric.result()}\n\n"
+        f" - Loss: {self.test_loss_metric.result()}\n"
+        f" - Overall Accuracy: {self.test_overall_acc_metric.result()}\n"
+        f" - IOU Accuracy: {self.test_iou_acc_metric.result()}\n\n"
       )
       if epoch != self.epochs - 1:
         self.train_loss_metric.reset_states()
-        self.train_acc_metric.reset_states()
+        self.train_overall_acc_metric.reset_states()
+        self.train_iou_acc_metric.reset_states()
         self.test_loss_metric.reset_states()
-        self.test_acc_metric.reset_states()
+        self.test_overall_acc_metric.reset_states()
+        self.test_iou_acc_metric.reset_states()
 
     return (
       self.train_loss_metric.result().numpy(),
-      self.train_acc_metric.result().numpy(),
+      self.train_overall_acc_metric.result().numpy(),
+      self.train_iou_acc_metric.result().numpy(),
       self.test_loss_metric.result().numpy(),
-      self.test_acc_metric.result().numpy(),
+      self.test_overall_acc_metric.result().numpy(),
+      self.test_iou_acc_metric.result().numpy(),
     )
 
-  def test(self, some_args_go_here):
-    return
+  # TODO: Need to do this more accurately like orig implementation?
+  def test(
+    self, test_dataset: tf.data.Dataset
+  ) -> Annotated[Tuple[np.ndarray], 3]:
+    """Custom model evaluation function."""
+    for x, y in tqdm(test_dataset, desc="evaluation"):
+      self.test_step(x, y)
+
+    print(
+      f"Evaluation Results:\n"
+      f" - Loss: {self.test_loss_metric.result()}\n"
+      f" - Overall Accuracy: {self.test_overall_acc_metric.result()}\n"
+      f" - IOU Accuracy: {self.test_iou_acc_metric.result()}\n\n"
+    )
+    return (
+      self.test_loss_metric.result().numpy(),
+      self.test_overall_acc_metric.result().numpy(),
+      self.test_iou_acc_metric.result().numpy(),
+    )
 
 
 def main():
@@ -185,9 +197,9 @@ def main():
   print(configs)
   print("---------------------------------------")
 
-  ####################################################
-  # Initialize Dataset(s), Model, Optimizer, TODO... #
-  ####################################################
+  ############################################################
+  # Initialize Dataset(s), Model, Optimizer, & Loss Function #
+  ############################################################
   print(f'\n==> loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
 
@@ -196,32 +208,43 @@ def main():
   model = None
   optimizer = None
 
-  if configs.train.from_scratch:
-    model = configs.model(...)
-    optimizer = configs.train.optimizer(..., configs.train.optimizer.lr)
+  # TODO: Verify this works as expected in minimal example
+  checkpoint = tf.train.Checkpoint(model=model, optimizer=optimizer)
+  cur_step = tf.Variable(0)
+  manager = tf.train.CheckpointManager(
+    checkpoint,
+    directory=configs.train.train_ckpts_path,
+    max_to_keep=5,
+    step_counter=cur_step,
+    checkpoint_interval=5,
+  )
+  if configs.train.restart_training:
+    model = configs.model()
+    optimizer = configs.train.optimizer()
   else:
-    checkpoint = tf.train.Checkpoint(model=model, optimizer=optimizer)
-    manager: tf.train.CheckpointManager
-    if configs.test.is_testing:
-      manager = tf.train.CheckpointManager(
-        checkpoint, directory=configs.test.best_checkpoint_path
-      )
-    else:
-      # Will resume model state if we have checkpoints in the directory
-      # specified by `configs.train.train_ckpts_path`
-      manager = tf.train.CheckpointManager(
-        checkpoint, directory=configs.train.train_ckpts_path, max_to_keep=5
-      )
+    # Will resume model state if we have checkpoints in the directory
+    # specified by `configs.train.train_ckpts_path`
     checkpoint.restore(manager.latest_checkpoint).assert_consumed()
 
   ############
   # Training #
   ############
   print("Training...")
-  train_obj = Train(...)
+  train_obj = Train(
+    epochs=configs.train.num_epochs,
+    model=model,
+    optimizer=optimizer,
+    loss_fn=loss_fn,
+    train_step=cur_step,
+    checkpoint_manager=manager,
+    train_overall_metric=configs.train.overall,
+    train_iou_metric=configs.train.iou,
+    test_overall_metric=configs.test.overall,
+    test_iou_metric=configs.test.iou,
+  )
   if configs.test.is_testing:
-    return train_obj.train_loop(...)
-  return train_obj.test(...)
+    return train_obj.test(dataset["test"])
+  return train_obj.train_loop(dataset["train"], dataset["test"])
 
 
 if __name__ == "__main__":
