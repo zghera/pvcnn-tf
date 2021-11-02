@@ -1,8 +1,8 @@
 # Point-Voxel CNN TensorFlow
-This repo is a TensorFlow 2 Implementation of Point-Voxel CNN for Efficient 3D Deep Learning (see [arXiv paper](https://arxiv.org/abs/1907.03739), [MIT HAN Lab Repo](https://github.com/mit-han-lab/pvcnn)).
+This repo is a TensorFlow 2 Implementation of Point-Voxel CNN for Efficient 3D Deep Learning (see [arXiv paper](https://arxiv.org/abs/1907.03739), [MIT HAN Lab Repo](https://github.com/mit-han-lab/pvcnn)). Development is currently in progress!
 
 # Prerequisites
-The code is built using the libraries listed in [requirements.txt](https://github.com/zghera/pvcnn-tf/blob/master/requirements.txt).
+TODO
 
 # Data Preparation
 ## S3DIS
@@ -20,16 +20,14 @@ TODO
 # Evaluating Pretrained Models
 TODO
 
-
 # Training
 TODO
-
 
 # License 
 This repository is released under the MIT license. This includes the [license](https://github.com/mit-han-lab/pvcnn/blob/master/LICENSE) from the original authors. See [LICENSE](https://github.com/zghera/pvcnn-tf/blob/master/LICENSE) for additional details.
 
 # Acknowledgement
-The following code segments / modules were modified from [the official PVCNN implementation](https://github.com/mit-han-lab/pvcnn) (MIT License):
+The following modules / code-segments were adapted from [the official PVCNN implementation](https://github.com/mit-han-lab/pvcnn) (MIT License):
 * [Data pre-processing.](https://github.com/zghera/pvcnn-tf/blob/master/data/s3dis/prepare_data.py)
 * [Training and evaluation.](https://github.com/zghera/pvcnn-tf/blob/master/train.py)
 * [Experiment configuration.](https://github.com/zghera/pvcnn-tf/blob/master/utils/config.py)
