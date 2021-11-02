@@ -28,6 +28,7 @@ def main(create_pointcloud_dump: bool):
     use_normalized_coords=False,
     holdout_area=5,
     is_train_split=True,
+    is_deterministic=False,
   )
   x, y = tuple(tf.squeeze(tensor) for tensor in next(iter(dataset)))
   x = x[:3, :]
