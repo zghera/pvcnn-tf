@@ -1,6 +1,7 @@
 """Experiment configurations for S3DIS PVCNN model."""
 import tensorflow as tf
 from tensorflow.keras.optimizers.schedules import CosineDecay
+from tensorflow.keras.regularizers import L2
 
 from models import PVCNN
 from utils.config import Config, configs
@@ -9,10 +10,10 @@ from utils.config import Config, configs
 configs.model = Config(PVCNN)
 configs.model.num_classes = configs.data.num_classes
 configs.model.extra_feature_channels = 6
-configs.dataset.num_points = 4096
+configs.train.model.kernel_regularizer = L2(1e-5)
 
-# train: optimizer
-configs.train.optimizer.weight_decay = 1e-5
+# dataset
+configs.dataset.num_points = 4096
 
 # train: scheduler
 configs.train.optimizer.learning_rate = Config(CosineDecay) # TODO: Is tf different?
