@@ -30,6 +30,9 @@ def main(create_pointcloud_dump: bool):
     is_train_split=True,
     is_deterministic=False,
   )
+
+  # x, y = tuple(tensor for tensor in next(iter(dataset)))
+  # print(f"raw shape = {x.shape} | label shape = {y.shape}")
   x, y = tuple(tf.squeeze(tensor) for tensor in next(iter(dataset)))
   x = x[:3, :]
   print(f"sample shape = {x.shape} | label shape = {y.shape}")
