@@ -222,6 +222,8 @@ def main():
   configs = get_configs()
   tf.random.set_seed(configs.seed)
   np.random.seed(configs.seed)
+  # Use channels first format for ease of comparing shapres with original impl.
+  tf.keras.backend.set_image_data_format('channels_first')
   print("------------ Configuration ------------")
   print(configs)
   print("---------------------------------------")

@@ -6,10 +6,10 @@ from ops.voxelization_ops import avg_voxelize
 
 
 class Voxelization(tf.keras.layers.Layer):
-  """TODO"""
+  """Voxelization layer."""
 
   def __init__(
-    self, resolution: int, normalize: bool = True, eps: int = 0, **kwargs
+    self, resolution: int, normalize: bool = True, eps: float = 0, **kwargs
   ):
     super().__init__(**kwargs)
     self._resolution = resolution

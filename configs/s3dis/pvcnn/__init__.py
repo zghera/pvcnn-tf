@@ -12,6 +12,14 @@ configs.model.num_classes = configs.data.num_classes
 configs.model.extra_feature_channels = 6
 configs.train.model.kernel_regularizer = L2(1e-5)
 
+# TODO: Add the configs for the each of the sub-models
+configs.model.point_features_branch.blocks = (
+  (64, 1, 32),
+  (64, 2, 16),
+  (128, 1, 16),
+  (1024, 1, None),
+)
+
 # dataset
 configs.dataset.num_points = 4096
 
