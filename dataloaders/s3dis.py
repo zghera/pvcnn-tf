@@ -119,10 +119,15 @@ def _random_sample_data(
 
   data = tf.transpose(tf.gather(data, indices=indices))
   label = tf.gather(label, indices=indices)
+  label = tf.one_hot(label, depth=13, axis=0)
   if use_normalized_coords:
-    # data[9, num_points] =  [x_in_block, y_in_block, z_in_block, r, g, b, x / x_room, y / y_room, z / z_room]
+    # data has shape [9, num_points] where axis 0 is
+    #   [x_in_block, y_in_block, z_in_block, r, g, b, x / x_room, y / y_room, z / z_room]
+    # label has shape [13, num_points] where axis 0 is the one-hot encoding
+    #   of the categorical label 0 - 12.
     return data, label
-  # data[6, num_points] = [x_in_block, y_in_block, z_in_block, r, g, b]
+  # data has shape [6, num_points] where axis 0 is
+  #   [x_in_block, y_in_block, z_in_block, r, g, b]
   return data[:-3, :], label
 
 

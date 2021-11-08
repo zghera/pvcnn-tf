@@ -13,13 +13,14 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     self._total_correct_num = 0
 
   def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> None:
-    # y_pred: B x 13 x num_points | y_true: B x num_points
-    y_pred_max = tf.math.argmax(y_pred, axis=1)
-    tf.debugging.assert_equal(tf.size(y_true), tf.size(y_pred_max))
+    # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
+    y_true_categ = tf.math.argmax(y_pred, axis=1)
+    y_pred_categ = tf.math.argmax(y_pred, axis=1)
+    tf.debugging.assert_equal(tf.size(y_true_categ), tf.size(y_pred_categ))
 
     self._total_seen_num += tf.size(y_true)
     self._total_correct_num += tf.reduce_sum(
-        tf.cast(y_true == y_pred_max, tf.int32))
+        tf.cast(y_true_categ == y_pred_categ, tf.int32))
 
   def result(self) -> None:
     return self._total_correct_num / self._total_seen_num
@@ -37,6 +38,7 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
     super().__init__(num_classes=num_classes, name=f"acc/iou_{split}", **kwargs)
 
   def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
-    # y_pred: B x 13 x num_points, y_true: B x num_points
-    y_pred_max = tf.math.argmax(y_pred, axis=1)
-    super().update_state(y_true, y_pred_max)
+    # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
+    y_true_categ = tf.math.argmax(y_true, axis=1)
+    y_pred_categ = tf.math.argmax(y_pred, axis=1)
+    super().update_state(y_true_categ, y_pred_categ)
