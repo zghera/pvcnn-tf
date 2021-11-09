@@ -24,9 +24,14 @@ def create_pointnet_components(
     if voxel_resolution is None:
       block = ConvBn
     else:
-      block = functools.partial(PVConv, kernel_size=3,
-                        resolution=int(vr * voxel_resolution),
-                        eps=eps, normalize=normalize, with_se=with_se)
+      block = functools.partial(
+        PVConv,
+        kernel_size=3,
+        resolution=int(vr * voxel_resolution),
+        eps=eps,
+        normalize=normalize,
+        with_se=with_se,
+      )
 
     for _ in range(num_blocks):
       layers.append(block(out_channels))
@@ -62,8 +67,7 @@ def create_mlp_components(
       layers.append(DenseBn(int(r * out_channels[-1])))
   else:
     if is_classifier:
-      layers.append(
-        tf.keras.layers.Conv1d(filters=out_channels[-1], kernel=1))
+      layers.append(tf.keras.layers.Conv1d(filters=out_channels[-1], kernel=1))
     else:
       layers.append(ConvBn(int(r * out_channels[-1])))
 
@@ -84,17 +88,18 @@ class PointFeaturesBranch(tf.keras.layers.Layer):
     self._layers = create_pointnet_components(
       blocks=blocks,
       width_multiplier=width_multiplier,
+      voxel_resolution_multiplier=voxel_resolution_multiplier,
     )
 
   def call(self, inputs, training=None) -> List[tf.Tensor]:
     # FloatTensor shape [B, 3, N] where axis 1 is x,y,z coordinate for a point.
     coords = inputs[:, :3, :]
 
-    x = inputs
+    features = inputs
     out_features_list = []
     for layer in self._layers:
-      x, _ = layer((x, coords), training=training)
-      out_features_list.append(x)
+      features, _ = layer((features, coords), training=training)
+      out_features_list.append(features)
     return out_features_list
 
 
@@ -111,10 +116,12 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
     )
 
   def call(self, inputs, training=None) -> tf.Tensor:
+    # Get maximum channel value for each channel over all of the points
     inputs = tf.math.reduce_max(inputs, axis=-1)
     x = inputs
     for layer in self._layers:
       x = layer(x, training=training)
+    # Duplicate output tensor for N size num_points dimension
     return tf.repeat(tf.expand_dims(x, axis=-1), inputs.size(-1), axis=-1)
 
 

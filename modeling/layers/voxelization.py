@@ -18,38 +18,39 @@ class Voxelization(tf.keras.layers.Layer):
 
   def build(self, input_shape) -> None:
     _, coords_shape = input_shape
-    self.norm_coords = self.add_weight(shape=coords_shape, trainable=True)
-    self.vox_coords = self.add_weight(
+    self._norm_coords = self.add_weight(shape=coords_shape, trainable=True)
+    self._vox_coords = self.add_weight(
       shape=coords_shape, dtype=tf.int32, trainable=True
     )
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
-    # See modeling/layers/pvconv.py for details on features,coords
+    # See modeling/layers/submodules.PointFeaturesBranch.call for more
+    # info on features, coords
     features, coords = inputs
-    self.norm_coords = coords - tf.math.reduce_mean(
+    self._norm_coords = coords - tf.math.reduce_mean(
       coords, axis=2, keepdims=True
     )
 
     if self._normalize:
       coords_reduced = tf.math.reduce_max(
-        tf.norm(self.norm_coords, axis=1, keepdims=True),
+        tf.norm(self._norm_coords, axis=1, keepdims=True),
         axis=2,
         keepdims=True,
       )
-      self.norm_coords = (
-        self.norm_coords / (coords_reduced * 2.0 + self._eps) + 0.5
+      self._norm_coords = (
+        self._norm_coords / (coords_reduced * 2.0 + self._eps) + 0.5
       )
     else:
-      self.norm_coords = (self.norm_coords + 1) / 2.0
+      self._norm_coords = (self._norm_coords + 1) / 2.0
 
-    self.norm_coords = tf.clip_by_value(
-      self.norm_coords * self._resoltion, 0, self._resolution - 1
+    self._norm_coords = tf.clip_by_value(
+      self._norm_coords * self._resoltion, 0, self._resolution - 1
     )
-    self.vox_coords = tf.cast(tf.round(self.norm_coords), dtype=tf.int32)
+    self._vox_coords = tf.cast(tf.round(self._norm_coords), dtype=tf.int32)
 
     vox_features_sqzd, _, _ = avg_voxelize(
-      features, self.vox_coords, self._resolution
+      features, self._vox_coords, self._resolution
     )
     B, C, _ = features.shape
     R = self._resolution

@@ -12,7 +12,7 @@ class ConvBn(tf.keras.layers.Layer):
   """
 
   def __init__(self, out_channels: int, dim: int = 1, **kwargs):
-    assert dim in (1, 2), 'Only use 1 or 2 dim conv layers for ConvBn block.'
+    assert dim in (1, 2), "Only use 1 or 2 dim conv layers for ConvBn block."
     super().__init__(**kwargs)
 
     self._dim = dim
@@ -20,14 +20,14 @@ class ConvBn(tf.keras.layers.Layer):
 
   def build(self, input_shape) -> None:
     conv_args = {
-      'filters': self._out_channels,
-      'kernel_size': 1,
+      "filters": self._out_channels,
+      "kernel_size": 1,
     }
     if self._dim == 1:
       self._conv = tf.keras.layers.Conv1D(**conv_args)
     else:
       self._conv = tf.keras.layers.Conv2D(**conv_args)
-    self._bn = tf.keras.layers.BatchNormalization()
+    self._bn = tf.keras.layers.BatchNormalization(axis=1)
     self._relu = tf.keras.layers.ReLU()
     super().build(input_shape)
 
@@ -36,12 +36,14 @@ class ConvBn(tf.keras.layers.Layer):
     x = self._bn(x, training=training)
     return self._relu(x)
 
-  def call(self, inputs, training=None
+  def call(
+    self, inputs, training=None
   ) -> Union[tf.Tensor, Tuple[tf.Tensor, ...]]:
     if isinstance(inputs, (list, tuple)):
       return (self._call(inputs[0], training), *inputs[1:])
 
     return self._call(inputs, training)
+
 
 class DenseBn(tf.keras.layers.Layer):
   """LinearBN Block.

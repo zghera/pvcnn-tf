@@ -2,8 +2,10 @@
 from typing import Tuple
 import tensorflow as tf
 
-def avg_voxelize(features: tf.Tensor, coords: tf.Tensor, resolution: int
-)-> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+
+def avg_voxelize(
+  features: tf.Tensor, coords: tf.Tensor, resolution: int
+) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
   """Average pool voxelization
   Args:
     features: features, FloatTensor[b, c, n]
@@ -15,3 +17,10 @@ def avg_voxelize(features: tf.Tensor, coords: tf.Tensor, resolution: int
     cnt : #points in each voxel index, IntTensor[b, s]
   """
   return tf.constant(), tf.constant(), tf.constant()
+
+
+def trilinear_devoxelize(
+  features: tf.Tensor, coords: tf.Tensor, resolution: int, is_training: bool
+) -> tf.Tensor:
+  """TODO"""
+  return tf.constant()

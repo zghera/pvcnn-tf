@@ -7,8 +7,10 @@ from modeling.layers.sub_models import (
   ClassificationHead,
 )
 
+
 class PVCNN(tf.keras.Model):
   """PVCNN Model."""
+
   def __init__(
     self,
     point_voxel_branch: PointFeaturesBranch,
