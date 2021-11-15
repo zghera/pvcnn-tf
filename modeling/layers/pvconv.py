@@ -43,6 +43,9 @@ class PVConv(tf.keras.layers.Layer):
     self._bn = tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
     self._lrelu = tf.keras.layers.LeakyReLU(alpha=0.1)
     self._point_features = ConvBn(out_channels=self._out_channels)
+
+    features_shape, _ = input_shape # features_shape = [B, C, R, R, R]
+    self._squeeze = tf.keras.layers.Reshape((features_shape[1], -1))
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
@@ -52,6 +55,7 @@ class PVConv(tf.keras.layers.Layer):
       voxel_features = self._conv(voxel_features)
       voxel_features = self._bn(voxel_features)
       voxel_features = self._lrelu(voxel_features)
+    voxel_features = self._squeeze(voxel_features)
     voxel_features = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
