@@ -4,20 +4,21 @@ import tensorflow as tf
 from utils.config import Config, configs
 
 # dataset
+configs.train.num_epochs = 1
 configs.dataset.num_points = 4096
 configs.dataset.holdout_area = 5
 
 # dummy model
 N = configs.dataset.num_points
-CL =  configs.data.num_classes
+CL = configs.data.num_classes
 # B = configs.dataset.batch_size
-# C = 9 if configs.dataset.use_normalized_coords else 6
+C = 9 if configs.dataset.use_normalized_coords else 6
 
-# inputs has shape [B, C, N].
-dummy_model = tf.keras.Sequential()
-dummy_model.add(tf.keras.layers.Reshape((-1)))
-dummy_model.add(tf.keras.layers.Dense(CL * N))
-# output has shape [B, num_classes=13, N].
-dummy_model.add(tf.keras.layers.Reshape((CL, N)))
+# inputs has shape [B, C=9, N].
+inputs = tf.keras.Input(shape=(C, N))
+outputs = tf.keras.layers.ZeroPadding1D(padding=2)(inputs)
+# outputs has shape [B, num_classes=13, N].
 
-configs.model = Config(dummy_model)
+configs.model = Config(tf.keras.Model)
+configs.model.inputs = inputs
+configs.model.outputs = outputs
