@@ -1,0 +1,3 @@
+[submodule "ops/voxelization_ops"]
+	path = ops/voxelization_ops
+	url = https://github.com/zghera/voxel-tf-ops
