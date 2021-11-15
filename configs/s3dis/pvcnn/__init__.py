@@ -1,29 +1,50 @@
 """Experiment configurations for S3DIS PVCNN model."""
-import tensorflow as tf
+# TODO: If TF's CosineDecay much different from Pytorch's equivalent?
 from tensorflow.keras.optimizers.schedules import CosineDecay
 from tensorflow.keras.regularizers import L2
 
-from models import PVCNN
+from modeling import PVCNN
+from modeling.layers import (
+  PointFeaturesBranch,
+  CloudFeaturesBranch,
+  ClassificationHead,
+)
 from utils.config import Config, configs
 
-# model
-configs.model = Config(PVCNN)
-configs.model.num_classes = configs.data.num_classes
-configs.model.extra_feature_channels = 6
-configs.train.model.kernel_regularizer = L2(1e-5)
+# sub-models
+configs.submodel = Config()
+configs.submodel.kernel_reg = L2(1e-5)
 
-# TODO: Add the configs for the each of the sub-models
-configs.model.point_features_branch.blocks = (
+configs.point_branch = Config(PointFeaturesBranch)
+configs.point_branch.blocks = (
   (64, 1, 32),
   (64, 2, 16),
   (128, 1, 16),
   (1024, 1, None),
 )
+configs.point_branch.width_multiplier = configs.submodel.width_multiplier
+configs.point_branch.voxel_resolution_multiplier = 1
+configs.point_branch.kernel_reg = configs.submodel.kernel_reg
+
+configs.cloud_branch = Config(CloudFeaturesBranch)
+configs.cloud_branch.width_multiplier = configs.submodel.width_multiplier
+configs.cloud_branch.kernel_reg = configs.submodel.kernel_reg
+
+configs.classification_head = Config(ClassificationHead)
+configs.classification_head.num_classes = configs.data.num_classes
+configs.classification_head.width_multiplier = configs.submodel.width_multiplier
+configs.classification_head.kernel_reg = configs.submodel.kernel_reg
+
+# model
+configs.model = Config(PVCNN)
+configs.model.point_voxel_branch = configs.point_branch()
+configs.model.cloud_features_branch = configs.cloud_branch()
+configs.model.classification_head = configs.classification_head()
 
 # dataset
 configs.dataset.num_points = 4096
 
 # train: scheduler
-configs.train.optimizer.learning_rate = Config(CosineDecay) # TODO: Is tf different?
+configs.train.optimizer.learning_rate = Config(CosineDecay)
 configs.train.scheduler.learning_rate.initial_learning_rate = 1e-3
 configs.train.scheduler.learning_rate.decay_steps = configs.train.num_epochs
