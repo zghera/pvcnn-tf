@@ -296,6 +296,5 @@ def main():
   return train_obj.train_loop(train_dataset_it, test_dataset_it)
 
 
-# TODO: Test training (checkpoints especially) & eval with a dummy model
 if __name__ == "__main__":
   main()
