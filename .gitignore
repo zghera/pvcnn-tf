@@ -70,3 +70,9 @@ prototyping/
 
 # VSCode
 .vscode/
+
+# Colab's Terminal Notebook
+terminal.ipynb
+
+# Training Checkpoints
+training_ckpts/
