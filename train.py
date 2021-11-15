@@ -1,5 +1,5 @@
 """PVCNN S3DIS Training."""
-from typing import Tuple, Annotated, Iterator
+from typing import Tuple, Iterator
 
 import os
 import argparse
@@ -122,7 +122,7 @@ class Train:
       self._best_metric_val = cur_metric
       save_path = self.best_manager.save()
       print(f"NEW BEST checkpoint. Saved to {save_path}")
-  
+
   @tf.function
   def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One train step."""
@@ -154,7 +154,7 @@ class Train:
     self,
     train_dataset_it: Iterator[tf.Tensor],
     test_dataset_it: Iterator[tf.Tensor],
-  ) -> Annotated[Tuple[np.ndarray], 6]:
+  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Custom training loop."""
     for epoch in tqdm(range(self.epochs), desc="training"):
       for x, y in tqdm(train_dataset_it, desc=f"epoch {epoch}: train"):
@@ -195,7 +195,7 @@ class Train:
   # TODO: Need to do this more accurately like orig implementation?
   def eval(
     self, test_dataset_it: Iterator[tf.Tensor]
-  ) -> Annotated[Tuple[np.ndarray], 3]:
+  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Custom model evaluation function."""
     for x, y in tqdm(test_dataset_it, desc="evaluation"):
       self.test_step(x, y)
@@ -221,7 +221,7 @@ def main():
   tf.random.set_seed(configs.seed)
   np.random.seed(configs.seed)
   # Use channels first format for ease of comparing shapres with original impl.
-  tf.keras.backend.set_image_data_format('channels_first')
+  tf.keras.backend.set_image_data_format("channels_first")
   print("------------ Configuration ------------")
   print(configs)
   print("---------------------------------------")
