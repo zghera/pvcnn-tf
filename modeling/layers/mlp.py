@@ -11,17 +11,25 @@ class ConvBn(tf.keras.layers.Layer):
   implementation.
   """
 
-  def __init__(self, out_channels: int, dim: int = 1, **kwargs):
+  def __init__(
+    self,
+    out_channels: int,
+    dim: int = 1,
+    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+    **kwargs,
+  ):
     assert dim in (1, 2), "Only use 1 or 2 dim conv layers for ConvBn block."
     super().__init__(**kwargs)
 
     self._dim = dim
     self._out_channels = out_channels
+    self._kernel_regularizer = kernel_regularizer
 
   def build(self, input_shape) -> None:
     conv_args = {
       "filters": self._out_channels,
       "kernel_size": 1,
+      "kernel_regularizer": self._kernel_regularizer,
     }
     if self._dim == 1:
       self._conv = tf.keras.layers.Conv1D(**conv_args)
@@ -51,12 +59,20 @@ class DenseBn(tf.keras.layers.Layer):
   Building block that combines dense, batch normalization, and ReLU layers.
   """
 
-  def __init__(self, out_channels: int, **kwargs):
+  def __init__(
+    self,
+    out_channels: int,
+    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+    **kwargs,
+  ):
     super().__init__(**kwargs)
     self._out_channels = out_channels
+    self._kernel_regularizer = kernel_regularizer
 
   def build(self, input_shape) -> None:
-    self._fc = tf.keras.layer.Dense(self._out_channels)
+    self._fc = tf.keras.layer.Dense(
+      self._out_channels, kernel_regularizer=self._kernel_regularizer
+    )
     self._bn = tf.keras.layers.BatchNormalization()
     self._relu = tf.keras.layers.ReLU()
     super().build(input_shape)

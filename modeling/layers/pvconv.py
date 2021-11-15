@@ -19,7 +19,8 @@ class PVConv(tf.keras.layers.Layer):
     resolution: int,
     eps: float,
     normalize: bool,
-    with_se: bool,
+    with_se: bool = False,
+    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
     **kwargs,
   ):
     super().__init__(**kwargs)
@@ -28,6 +29,7 @@ class PVConv(tf.keras.layers.Layer):
     self._resolution = resolution
     self._eps = eps
     self._normalize = normalize
+    self._kernel_regularizer = kernel_regularizer
     if with_se:
       raise NotImplementedError("SE3d layer not implemented for PVConv block.")
 
@@ -38,13 +40,19 @@ class PVConv(tf.keras.layers.Layer):
     # TODO: Verify 'same' padding is consistent with original implementation
     #       in case they use a kernel size other than 3.
     self._conv = tf.keras.layers.Conv3D(
-      self._out_channels, self._kernel_size, padding="same"
+      self._out_channels,
+      self._kernel_size,
+      padding="same",
+      kernel_regularizer=self._kernel_regularizer,
     )
     self._bn = tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
     self._lrelu = tf.keras.layers.LeakyReLU(alpha=0.1)
-    self._point_features = ConvBn(out_channels=self._out_channels)
+    self._point_features = ConvBn(
+      out_channels=self._out_channels,
+      kernel_regularizer=self._kernel_regularizer,
+    )
 
-    features_shape, _ = input_shape # features_shape = [B, C, R, R, R]
+    features_shape, _ = input_shape  # features_shape = [B, C, R, R, R]
     self._squeeze = tf.keras.layers.Reshape((features_shape[1], -1))
     super().build(input_shape)
 

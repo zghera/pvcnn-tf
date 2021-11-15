@@ -106,7 +106,6 @@ class Train:
     self._best_metric_val = None
     self.autotune = tf.data.experimental.AUTOTUNE
 
-  @tf.function
   def _save_train_checkpoint(self) -> None:
     """Save training checkpoint."""
     save_path = self.progress_manager.save(check_interval=True)
@@ -114,7 +113,6 @@ class Train:
 
     self.train_step_idx.assign_add(1)
 
-  @tf.function
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
     cur_metric = self.best_ckpt_metric.result()
@@ -124,7 +122,7 @@ class Train:
       self._best_metric_val = cur_metric
       save_path = self.best_manager.save()
       print(f"NEW BEST checkpoint. Saved to {save_path}")
-
+  
   @tf.function
   def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One train step."""
@@ -152,7 +150,7 @@ class Train:
     self.eval_overall_acc_metric.update_state(label, predictions)
     self.eval_iou_acc_metric.update_state(label, predictions)
 
-  def train_loop(
+  def train(
     self,
     train_dataset_it: Iterator[tf.Tensor],
     test_dataset_it: Iterator[tf.Tensor],
@@ -293,7 +291,7 @@ def main():
   )
   if configs.eval.is_evaluating:
     return train_obj.eval(test_dataset_it)
-  return train_obj.train_loop(train_dataset_it, test_dataset_it)
+  return train_obj.train(train_dataset_it, test_dataset_it)
 
 
 if __name__ == "__main__":
