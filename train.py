@@ -88,7 +88,7 @@ class Train:
 
   def _save_train_checkpoint(self) -> None:
     """Save training checkpoint."""
-    self.progress_manager.save(check_interval=True)
+    self.progress_manager.save()
     # save_path = self.progress_manager.save(check_interval=True)
     # print(
     #   f"Saved checkpoint for epoch-iter {int(self.train_epoch)}-"
@@ -242,17 +242,17 @@ def main():
   cur_epoch = tf.Variable(1)
   cur_iter_in_epoch = tf.Variable(1)
   checkpoint = tf.train.Checkpoint(
-    epoch=cur_epoch,
-    iter=cur_iter_in_epoch,
+    cur_epoch=cur_epoch,
+    cur_iter_in_epoch=cur_iter_in_epoch,
     model=model,
     optimizer=optimizer,
   )
   progress_manager = tf.train.CheckpointManager(
     checkpoint,
     directory=configs.train.train_ckpts_path,
-    max_to_keep=3,
-    step_counter=cur_epoch,
-    checkpoint_interval=1,
+    # max_to_keep=3,
+    # step_counter=cur_epoch,
+    # checkpoint_interval=1,
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
