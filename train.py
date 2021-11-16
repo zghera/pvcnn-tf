@@ -258,10 +258,10 @@ def main():
     train_step=cur_step,
     progress_ckpt_manager=progress_manager,
     best_ckpt_manager=best_manager,
-    train_overall_metric=configs.train.overall,
-    train_iou_metric=configs.train.iou,
-    eval_overall_metric=configs.eval.overall,
-    eval_iou_metric=configs.eval.iou,
+    train_overall_metric=configs.metrics.train.overall,
+    train_iou_metric=configs.metrics.train.iou,
+    eval_overall_metric=configs.metrics.eval.overall,
+    eval_iou_metric=configs.metrics.eval.iou,
     best_ckpt_metric=configs.train.best_ckpt_metric,
   )
   if configs.eval.is_evaluating:
