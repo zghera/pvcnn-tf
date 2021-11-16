@@ -11,13 +11,14 @@ configs.dataset.holdout_area = 5
 N = configs.dataset.num_points
 CL =  configs.data.num_classes
 # B = configs.dataset.batch_size
-# C = 9 if configs.dataset.use_normalized_coords else 6
+C = 9 if configs.dataset.use_normalized_coords else 6
 
 # inputs has shape [B, C, N].
-dummy_model = tf.keras.Sequential()
-dummy_model.add(tf.keras.layers.Flatten())
-dummy_model.add(tf.keras.layers.Dense(CL * N))
-# output has shape [B, num_classes=13, N].
-dummy_model.add(tf.keras.layers.Reshape((CL, N)))
+inputs = tf.keras.Input(shape=(C, N))
+x = tf.keras.layers.Flatten()(inputs)
+x = tf.keras.layers.Dense(CL * N, activation="relu")(x)
+outputs = tf.keras.layers.Reshape((CL,N))(x)
 
-configs.model = dummy_model
+configs.model = Config(tf.keras.Model)
+configs.model.inputs = inputs
+configs.model.outputs = outputs
