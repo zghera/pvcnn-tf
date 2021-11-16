@@ -97,7 +97,7 @@ def _random_sample_data(
   """Map function for dataset to get randomly sampled (data,label) examples."""
   for tensor, expected_rank in [[data, 2], [label, 1], [data_num_points, 0]]:
     tf.debugging.assert_rank(tensor, expected_rank)
-  data_num_points = int(data_num_points)
+  data_num_points = int(data_num_points.numpy())
 
   data = tf.cast(data, tf.float32)
   label = tf.cast(label, tf.int64)
