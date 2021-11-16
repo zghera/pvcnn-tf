@@ -143,12 +143,12 @@ class Train:
     starting_iter = int(self.train_iter_in_epoch) - 1
     for epoch in tqdm(range(self.train_epoch - 1, self.epochs)):
       # fmt: off
-      for i, x, y in tqdm(enumerate(train_dataset),
+      for i, x, y in enumerate(tqdm(train_dataset,
         total=train_dataset_len, desc=f"epoch {epoch}: train"
-      ):
+      )):
         if i >= starting_iter:
           self.train_step(x, y)
-      for i, x, y in tqdm(enumerate(test_dataset), 
+      for i, x, y in tqdm(enumerate(test_dataset),
         total=test_dataset_len, desc=f"epoch {epoch}: validation",
       ):
         if i >= starting_iter:
