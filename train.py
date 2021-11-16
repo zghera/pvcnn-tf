@@ -203,9 +203,6 @@ def main():
   #################
   # Configuration #
   #################
-  ############### TODO: Remove after finished debugging ############### 
-  tf.config.run_functions_eagerly(True)
-  #####################################################################
   # Use channels first format for ease of comparing shapes with original impl.
   tf.keras.backend.set_image_data_format("channels_first")
   configs = get_configs()
@@ -285,4 +282,7 @@ def main():
 
 
 if __name__ == "__main__":
+  ############### TODO: Remove after finished debugging ############### 
+  # tf.config.run_functions_eagerly(True)
+  #####################################################################
   main()
