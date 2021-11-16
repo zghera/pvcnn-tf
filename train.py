@@ -97,7 +97,7 @@ class Train:
       print(f"NEW BEST checkpoint. Saved to {save_path}")
 
   @tf.function
-  def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
+  def train_step(self, sample: tf.Tensor, label: tf.Tensor, dataset_len: int) -> None:
     """One train step."""
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
@@ -111,7 +111,7 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
-    self.progress_manager.save()
+    self.progress_manager.save(self.train_epoch * dataset_len + self.train_iter_in_epoch)
     self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
@@ -137,10 +137,10 @@ class Train:
       print(f"\nEpoch {epoch}:")
       for i, (x, y) in enumerate(tqdm(train_dataset, total=train_dataset_len)):
         if i >= starting_iter:
-          self.train_step(x, y)
+          self.train_step(x, y, train_dataset_len)
       for i, (x, y) in enumerate(tqdm(test_dataset, total=test_dataset_len)):
         if i >= starting_iter:
-          self.test_step(x, y)
+          self.test_step(x, y, test_dataset_len)
 
       print(
         f"\nTraining Results | Epoch {epoch}:\n"
@@ -164,6 +164,7 @@ class Train:
         self.eval_iou_acc_metric.reset_states()
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
+      self.train_iter_in_epoch.assign(0)
       self.train_epoch.assign_add(1)
 
     return (
