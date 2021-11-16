@@ -58,7 +58,7 @@ class Train:
     model: tf.keras.Model,
     optimizer: tf.keras.optimizers.Optimizer,
     loss_fn: tf.keras.losses.Loss,
-    train_step: tf.Variable,
+    train_epoch: tf.Variable,
     progress_ckpt_manager: tf.train.CheckpointManager,
     best_ckpt_manager: tf.train.CheckpointManager,
     train_overall_metric: tf.keras.metrics.Metric,
@@ -71,7 +71,7 @@ class Train:
     self.model = model
     self.optimizer = optimizer
     self.loss_fn = loss_fn
-    self.train_step_idx = train_step
+    self.train_epoch_idx = train_epoch
     self.progress_manager = progress_ckpt_manager
     self.best_manager = best_ckpt_manager
     self.train_overall_acc_metric = train_overall_metric
@@ -87,9 +87,9 @@ class Train:
   def _save_train_checkpoint(self) -> None:
     """Save training checkpoint."""
     save_path = self.progress_manager.save(check_interval=True)
-    print(f"Saved checkpoint for step {int(self.train_step_idx)}: {save_path}")
+    print(f"Saved checkpoint for step {int(self.train_epoch_idx)}: {save_path}")
 
-    self.train_step_idx.assign_add(1)
+    self.train_epoch_idx.assign_add(1)
 
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
@@ -130,19 +130,19 @@ class Train:
 
   def train(
     self,
-    train_dataset_it: Iterator[tf.Tensor],
-    test_dataset_it: Iterator[tf.Tensor],
+    train_dataset: tf.data.Dataset,
+    test_dataset: tf.data.Dataset,
     train_dataset_len: int,
     test_dataset_len: int,
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Custom training loop."""
     for epoch in tqdm(range(self.train_step_idx - 1, self.epochs)):
       for x, y in tqdm(
-        train_dataset_it, total=train_dataset_len, desc=f"epoch {epoch}: train"
+        train_dataset, total=train_dataset_len, desc=f"epoch {epoch}: train"
       ):
         self.train_step(x, y)
       for x, y in tqdm(
-        test_dataset_it,
+        test_dataset,
         total=test_dataset_len,
         desc=f"epoch {epoch}: validation",
       ):
@@ -217,10 +217,10 @@ def main():
   ############################################################
   print(f'\n==> Loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
-  train_dataset_len = int(tf.data.experimental.cardinality(dataset["train"]))
-  test_dataset_len = int(tf.data.experimental.cardinality(dataset["test"]))
-  train_dataset_it = iter(dataset["train"])
-  test_dataset_it = iter(dataset["test"])
+  train_dataset = dataset["train"]
+  test_dataset = dataset["test"]
+  train_dataset_len = int(tf.data.experimental.cardinality(train_dataset))
+  test_dataset_len = int(tf.data.experimental.cardinality(test_dataset))
 
   print(f'\n==> Creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
@@ -228,19 +228,17 @@ def main():
   optimizer = configs.train.optimizer()
 
   # Init training checkpoint objs to determine how we initialize training objs
-  cur_step = tf.Variable(1)
+  cur_epoch = tf.Variable(1)
   checkpoint = tf.train.Checkpoint(
-    step=cur_step,
+    step=cur_epoch,
     model=model,
     optimizer=optimizer,
-    train_dataset_it=train_dataset_it,
-    test_dataset_it=test_dataset_it,
   )
   progress_manager = tf.train.CheckpointManager(
     checkpoint,
     directory=configs.train.train_ckpts_path,
     max_to_keep=3,
-    step_counter=cur_step,
+    step_counter=cur_epoch,
     checkpoint_interval=1,
   )
   best_manager = tf.train.CheckpointManager(
@@ -265,7 +263,7 @@ def main():
     model=model,
     optimizer=optimizer,
     loss_fn=loss_fn,
-    train_step=cur_step,
+    train_epoch=cur_epoch,
     progress_ckpt_manager=progress_manager,
     best_ckpt_manager=best_manager,
     train_overall_metric=configs.metrics.train.overall(),
@@ -275,9 +273,9 @@ def main():
     best_ckpt_metric=configs.train.best_ckpt_metric(),
   )
   if configs.eval.is_evaluating:
-    return train_obj.eval(test_dataset_it, test_dataset_len)
+    return train_obj.eval(test_dataset, test_dataset_len)
   return train_obj.train(
-    train_dataset_it, test_dataset_it, train_dataset_len, test_dataset_len
+    train_dataset, test_dataset, train_dataset_len, test_dataset_len
   )
 
 
