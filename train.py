@@ -149,6 +149,7 @@ class Train:
                             total=train_dataset_len, 
                             desc=f"epoch {epoch}: train"
       ):
+        print(i, x, y)
         if i >= starting_iter:
           self.train_step(x, y)
       for i, (x, y) in tqdm(enumerate(test_dataset),
