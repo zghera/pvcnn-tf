@@ -137,10 +137,10 @@ class Train:
       print(f"\nEpoch {epoch}:")
       for i, (x, y) in enumerate(tqdm(train_dataset, total=train_dataset_len)):
         if i >= starting_iter:
-          self.train_step(x, y, train_dataset_len)
+          self.train_step(x, y)
       for i, (x, y) in enumerate(tqdm(test_dataset, total=test_dataset_len)):
         if i >= starting_iter:
-          self.test_step(x, y, test_dataset_len)
+          self.test_step(x, y)
 
       print(
         f"\nTraining Results | Epoch {epoch}:\n"

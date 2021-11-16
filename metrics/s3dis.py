@@ -24,7 +24,7 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     y_pred_categ = tf.math.argmax(y_pred, axis=1)
     tf.debugging.assert_equal(tf.size(y_true_categ), tf.size(y_pred_categ))
 
-    self._total_seen_num += tf.size(y_true)
+    self._total_seen_num.assign_add(tf.size(y_true))
     self._total_correct_num += tf.reduce_sum(
       tf.cast(y_true_categ == y_pred_categ, tf.int32)
     )
