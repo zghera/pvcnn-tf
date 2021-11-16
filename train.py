@@ -211,14 +211,11 @@ def main():
   dataset = configs.dataset()
   train_dataset_it = iter(dataset["train"])
   test_dataset_it = iter(dataset["test"])
-  print(test_dataset_it)
-  print(next(test_dataset_it))
-  return
 
   print(f'\n==> creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
-  model = None
-  optimizer = None
+  model = configs.model()
+  optimizer = configs.train.optimizer()
 
   # Init training checkpoint objs to determine how we initialize training objs
   cur_step = tf.Variable(1)
@@ -243,12 +240,9 @@ def main():
     else configs.train.best_ckpt_path,
     max_to_keep=1,
   )
-  if configs.train.restart_training:
-    model = configs.model()
-    optimizer = configs.train.optimizer()
-  elif configs.eval.is_evaluating:
+  if configs.eval.is_evaluating:
     checkpoint.restore(best_manager.latest_checkpoint).assert_consumed()
-  else:
+  elif not configs.train.restart_training:
     # Training and resuming progress from last created checkpoint
     checkpoint.restore(progress_manager.latest_checkpoint).assert_consumed()
 
