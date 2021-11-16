@@ -32,36 +32,14 @@ def get_configs():
   configs.train.restart_training = args.restart
   assert configs.train.restart_training != configs.eval.is_evaluating
 
+  save_path = configs.train.save_path
+  configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")
+  configs.train.best_ckpt_path = os.path.join(save_path, "best_ckpt")
+
   if configs.eval.is_evaluating:
     batch_size = configs.eval.batch_size
-    if (
-      "best_ckpt_path" not in configs.eval
-      or configs.eval.best_ckpt_path is None
-    ):
-      if (
-        "best_ckpt_path" in configs.train
-        and configs.train.best_ckpt_path is not None
-      ):
-        configs.eval.best_ckpt_path = configs.train.best_ckpt_path
-      else:
-        configs.eval.best_ckpt_path = os.path.join(
-          configs.train.save_path, "best_ckpt"
-        )
   else:
     batch_size = configs.train.batch_size
-    train_metrics = []
-    if "metric" in configs.train and configs.train.metric is not None:
-      train_metrics.append(configs.train.metric)
-    if "metrics" in configs.train and configs.train.metrics is not None:
-      for m in configs.train.metrics:
-        if m not in train_metrics:
-          train_metrics.append(m)
-    configs.train.metrics = train_metrics
-    configs.train.metric = None if len(train_metrics) == 0 else train_metrics[0]
-
-    save_path = configs.train.save_path
-    configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")
-    configs.train.best_ckpt_path = os.path.join(save_path, "best_ckpt")
     if configs.train.restart_training:
       os.makedirs(configs.train.train_ckpts_path, exist_ok=False)
       os.makedirs(configs.train.best_ckpt_path, exist_ok=False)
@@ -231,8 +209,11 @@ def main():
   ############################################################
   print(f'\n==> loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
+  print(dataset)
   train_dataset_it = iter(dataset["train"])
+  print(next(train_dataset_it))
   test_dataset_it = iter(dataset["test"])
+  return
 
   print(f'\n==> creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
