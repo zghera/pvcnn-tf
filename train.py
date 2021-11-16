@@ -3,7 +3,7 @@ from typing import Tuple, Iterator
 
 import os
 import argparse
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import numpy as np
 import tensorflow as tf
 
@@ -149,7 +149,6 @@ class Train:
                             total=train_dataset_len, 
                             desc=f"epoch {epoch}: train"
       ):
-        print(i, x, y)
         if i >= starting_iter:
           self.train_step(x, y)
       for i, (x, y) in tqdm(enumerate(test_dataset),
