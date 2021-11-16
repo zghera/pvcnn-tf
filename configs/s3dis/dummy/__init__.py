@@ -9,7 +9,7 @@ configs.dataset.holdout_area = 5
 
 # dummy model
 N = configs.dataset.num_points
-CL =  configs.data.num_classes
+CL = configs.data.num_classes
 # B = configs.dataset.batch_size
 C = 9 if configs.dataset.use_normalized_coords else 6
 

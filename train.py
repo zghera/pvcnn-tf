@@ -59,6 +59,7 @@ class Train:
     optimizer: tf.keras.optimizers.Optimizer,
     loss_fn: tf.keras.losses.Loss,
     train_epoch: tf.Variable,
+    train_iter_in_epoch: tf.Variable,
     progress_ckpt_manager: tf.train.CheckpointManager,
     best_ckpt_manager: tf.train.CheckpointManager,
     train_overall_metric: tf.keras.metrics.Metric,
@@ -71,7 +72,8 @@ class Train:
     self.model = model
     self.optimizer = optimizer
     self.loss_fn = loss_fn
-    self.train_epoch_idx = train_epoch
+    self.train_epoch = train_epoch
+    self.train_iter_in_epoch = train_iter_in_epoch
     self.progress_manager = progress_ckpt_manager
     self.best_manager = best_ckpt_manager
     self.train_overall_acc_metric = train_overall_metric
@@ -87,9 +89,10 @@ class Train:
   def _save_train_checkpoint(self) -> None:
     """Save training checkpoint."""
     save_path = self.progress_manager.save(check_interval=True)
-    print(f"Saved checkpoint for step {int(self.train_epoch_idx)}: {save_path}")
-
-    self.train_epoch_idx.assign_add(1)
+    print(
+      f"Saved checkpoint for epoch-iter {int(self.train_epoch)}-"
+      f"{int(self.train_iter_in_epoch)}: {save_path}"
+    )
 
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
@@ -117,6 +120,7 @@ class Train:
     self.train_iou_acc_metric.update_state(label, predictions)
 
     self._save_train_checkpoint()
+    self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
   def test_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
@@ -136,17 +140,20 @@ class Train:
     test_dataset_len: int,
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Custom training loop."""
-    for epoch in tqdm(range(self.train_step_idx - 1, self.epochs)):
-      for x, y in tqdm(
+    starting_iter = int(self.train_iter_in_epoch) - 1
+    for epoch in tqdm(range(self.train_epoch - 1, self.epochs)):
+      # fmt: off
+      for i, x, y in enumerate(tqdm(
         train_dataset, total=train_dataset_len, desc=f"epoch {epoch}: train"
-      ):
-        self.train_step(x, y)
-      for x, y in tqdm(
-        test_dataset,
-        total=test_dataset_len,
-        desc=f"epoch {epoch}: validation",
-      ):
-        self.test_step(x, y)
+      )):
+        if i >= starting_iter:
+          self.train_step(x, y)
+      for i, x, y in enumerate(tqdm(
+        test_dataset, total=test_dataset_len, desc=f"epoch {epoch}: validation",
+      )):
+        if i >= starting_iter:
+          self.test_step(x, y)
+      # fmt: on
 
       print(
         f"Epoch {epoch}:\n"
@@ -168,6 +175,9 @@ class Train:
         self.eval_loss_metric.reset_states()
         self.eval_overall_acc_metric.reset_states()
         self.eval_iou_acc_metric.reset_states()
+
+      starting_iter = 0  # Only start part-way through epoch on 1st epoch
+      self.train_epoch.assign_add(1)
 
     return (
       self.train_loss_metric.result().numpy(),
@@ -229,8 +239,10 @@ def main():
 
   # Init training checkpoint objs to determine how we initialize training objs
   cur_epoch = tf.Variable(1)
+  cur_iter_in_epoch = tf.Variable(1)
   checkpoint = tf.train.Checkpoint(
-    step=cur_epoch,
+    epoch=cur_epoch,
+    iter=cur_iter_in_epoch,
     model=model,
     optimizer=optimizer,
   )
@@ -264,6 +276,7 @@ def main():
     optimizer=optimizer,
     loss_fn=loss_fn,
     train_epoch=cur_epoch,
+    train_iter_in_epoch=cur_iter_in_epoch,
     progress_ckpt_manager=progress_manager,
     best_ckpt_manager=best_manager,
     train_overall_metric=configs.metrics.train.overall(),
@@ -280,8 +293,8 @@ def main():
 
 
 if __name__ == "__main__":
-  ############### TODO: Remove after finished debugging ############### 
-  #tf.data.experimental.enable_debug_mode()
+  ############### TODO: Remove after finished debugging ###############
+  # tf.data.experimental.enable_debug_mode()
   tf.config.run_functions_eagerly(True)
   #####################################################################
   main()

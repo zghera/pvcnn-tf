@@ -26,9 +26,10 @@ configs.train.optimizer = Config(tf.keras.optimizers.Adam)
 configs.dataset = Config(DatasetS3DIS)
 configs.dataset.data_dir = "data/s3dis/pointcnn"
 configs.dataset.shuffle_size = 10000
-configs.dataset.batch_size = None # Set in train.py
+configs.dataset.batch_size = None  # Set in train.py
 configs.dataset.use_normalized_coords = True
 configs.dataset.is_deterministic = configs.deterministic
+configs.dataset.seed = configs.seed
 
 # metrics
 configs.metrics = Config()

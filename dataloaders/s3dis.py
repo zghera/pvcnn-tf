@@ -17,6 +17,7 @@ def create_s3dis_dataset(
   use_normalized_coords: bool,
   holdout_area: int,
   is_deterministic: bool,
+  seed: int,
   is_train_split: bool,
 ) -> tf.data.Dataset:
   """Creates train or test `tf.data.Dataset`.
@@ -50,12 +51,24 @@ def create_s3dis_dataset(
       data_num_points,
       desired_num_points,
       use_normalized_coords,
-    )
+    ),
+    num_parallel_calls=AUTOTUNE,
+    deterministic=is_deterministic,
   )
 
   if is_train_split:
-    dataset = dataset.shuffle(shuffle_size)
-  dataset = dataset.batch(batch_size).cache().prefetch(buffer_size=AUTOTUNE)
+    dataset = dataset.shuffle(
+      shuffle_size, seed=seed, reshuffle_each_iteration=True
+    )
+  dataset = (
+    dataset.batch(
+      batch_size,
+      num_parallel_calls=AUTOTUNE,
+      deterministic=is_deterministic,
+    )
+    .cache()
+    .prefetch(buffer_size=AUTOTUNE)
+  )
 
   return dataset
 
@@ -118,9 +131,11 @@ def _random_sample_data(
     _, indices = tf.nn.top_k(logits + z, k=desired_num_points)
     return indices
 
-  indices = tf.cond(data_num_points < desired_num_points, 
-                    true_fn=sample_with_replacement,
-                    false_fn=sample_without_replacement)
+  indices = tf.cond(
+    data_num_points < desired_num_points,
+    true_fn=sample_with_replacement,
+    false_fn=sample_without_replacement,
+  )
 
   data = tf.transpose(tf.gather(data, indices=indices))
   label = tf.gather(label, indices=indices)
@@ -151,6 +166,7 @@ class DatasetS3DIS(dict):
     use_normalized_coords: bool,
     holdout_area: int,
     is_deterministic: bool,
+    seed: int,
     split=None,
   ):
     """
@@ -163,6 +179,7 @@ class DatasetS3DIS(dict):
       use_normalized_coords: Whether include the normalized coords in features.
       holdout_area: Area to hold out for testing.
       is_deterministic: When False, the dataset can yield elements out of order.
+      is_deterministic: Random seed.
       split: 'train', 'test', or None. None will create both the train and
              test splits.
     """
@@ -180,5 +197,6 @@ class DatasetS3DIS(dict):
         use_normalized_coords,
         holdout_area,
         is_deterministic,
+        seed,
         is_train_split=(split == "train"),
       )
