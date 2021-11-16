@@ -62,9 +62,9 @@ def get_configs():
     save_path = configs.train.save_path
     configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")
     configs.train.best_ckpt_path = os.path.join(save_path, "best_ckpt")
-    if configs.train.from_scratch:
-      os.makedirs(configs.train.train_ckpts_path, exist_ok=True)
-      os.makedirs(configs.train.best_ckpt_path, exist_ok=True)
+    if configs.train.restart_training:
+      os.makedirs(configs.train.train_ckpts_path, exist_ok=False)
+      os.makedirs(configs.train.best_ckpt_path, exist_ok=False)
 
   configs.dataset.batch_size = batch_size
 
