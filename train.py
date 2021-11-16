@@ -142,7 +142,7 @@ class Train:
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Custom training loop."""
     starting_iter = int(self.train_iter_in_epoch)
-    for epoch in range(self.train_epoch, self.epochs):
+    for epoch in range(int(self.train_epoch), self.epochs):
       print(f"Epoch {epoch}:")
       # fmt: off
       for i, (x, y) in enumerate(tqdm(
@@ -297,6 +297,6 @@ def main():
 if __name__ == "__main__":
   ############### TODO: Remove after finished debugging ###############
   # tf.data.experimental.enable_debug_mode()
-  # tf.config.run_functions_eagerly(True)
+  tf.config.run_functions_eagerly(True)
   #####################################################################
   main()
