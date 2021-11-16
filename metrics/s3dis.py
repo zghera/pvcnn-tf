@@ -1,11 +1,17 @@
 """Evaluation metrics for PVCNN S3DIS dataset."""
 import tensorflow as tf
 
+
 class OverallAccuracy(tf.keras.metrics.Metric):
   """Mean overall accuracy metric."""
+
   def __init__(self, split: str, **kwargs) -> None:
     assert split in ["train", "test"]
     super().__init__(name=f"acc/overall_{split}", **kwargs)
+    self._total_seen_num = self.add_weight(name="seen", initializer="zeros")
+    self._total_correct_num = self.add_weight(
+      name="correct", initializer="zeros"
+    )
     self.reset_state()
 
   def reset_state(self) -> None:
@@ -20,10 +26,12 @@ class OverallAccuracy(tf.keras.metrics.Metric):
 
     self._total_seen_num += tf.size(y_true)
     self._total_correct_num += tf.reduce_sum(
-        tf.cast(y_true_categ == y_pred_categ, tf.int32))
+      tf.cast(y_true_categ == y_pred_categ, tf.int32)
+    )
 
   def result(self) -> None:
     return self._total_correct_num / self._total_seen_num
+
 
 class IouAccuracy(tf.keras.metrics.MeanIoU):
   """Mean IoU accuracy metric.
@@ -33,6 +41,7 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
   of each class. Like the original implementation, just grab the most
   likely class to match the labels for comparision.
   """
+
   def __init__(self, split: str, num_classes: int, **kwargs):
     assert split in ["train", "test"]
     super().__init__(num_classes, name=f"acc/iou_{split}", **kwargs)
