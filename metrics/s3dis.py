@@ -35,7 +35,7 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
   """
   def __init__(self, split: str, num_classes: int, **kwargs):
     assert split in ["train", "test"]
-    super().__init__(num_classes=num_classes, name=f"acc/iou_{split}", **kwargs)
+    super().__init__(num_classes, name=f"acc/iou_{split}", **kwargs)
 
   def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
