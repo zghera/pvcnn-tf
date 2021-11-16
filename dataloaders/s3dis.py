@@ -4,6 +4,8 @@ from pathlib import Path
 from absl import flags
 import tensorflow as tf
 import tensorflow_io as tfio
+import math
+import h5py
 
 FLAGS = flags.FLAGS
 AUTOTUNE = tf.data.AUTOTUNE
@@ -25,8 +27,10 @@ def create_s3dis_dataset(
     is_train_split: True if create train dataset. False if create test dataset.
     See S3DIS.__init__ for other arguments.
   """
-  filenames = _get_filenames(is_train_split, data_dir, holdout_area)
+  filenames, num_dataset_samples = _get_file_info(is_train_split, data_dir, holdout_area)
   filenames_ds = tf.data.Dataset.from_tensor_slices(filenames)
+
+  dataset_len = math.ceil(num_dataset_samples / batch_size)
 
   h5_dataset_specs = {
     "/label_seg": tf.int32,
@@ -70,13 +74,14 @@ def create_s3dis_dataset(
     .prefetch(buffer_size=AUTOTUNE)
   )
 
-  return dataset
+  return dataset, dataset_len
 
 
-def _get_filenames(
+def _get_file_info(
   is_train_split: bool, data_dir: str, holdout_area: int
 ) -> List[str]:
-  """Gets the dataset filenames for the split indicated by `is_training_split`."""
+  """Gets the dataset filenames and total number of sampels (scene pointcoulds)
+     for the split indicated by `is_training_split`."""
   root_path = Path(data_dir)
   assert root_path.is_dir()
   areas = []
@@ -87,6 +92,7 @@ def _get_filenames(
     areas.append(root_path / f"Area_{holdout_area}")
 
   filenames: List[str] = []
+  num_dataset_samples = 0
   for area in areas:
     assert area.is_dir()
     for scene in area.iterdir():
@@ -94,9 +100,13 @@ def _get_filenames(
       splits = list(scene.glob("*.h5"))
       assert len(splits) == 2
       for split in splits:
-        filenames.append(str(split.resolve()))
+        filename = str(split.resolve())
+        filenames.append(filename)
 
-  return filenames
+        h5f = h5py.File(filename, 'r')
+        num_dataset_samples += h5f['data'].shape[0]
+
+  return filenames, num_dataset_samples
 
 
 @tf.function
@@ -189,7 +199,7 @@ class DatasetS3DIS(dict):
     elif not isinstance(split, (list, tuple)):
       split = [split]
     for s in split:
-      self[s] = create_s3dis_dataset(
+      self[s], self[s + '_len'] = create_s3dis_dataset(
         data_dir,
         shuffle_size,
         batch_size,

@@ -138,15 +138,15 @@ class Train:
     """Custom training loop."""
     starting_iter = int(self.train_iter_in_epoch)
     for epoch in range(int(self.train_epoch), self.epochs):
-      print(f"Epoch {epoch}:")
+      print(f"\nEpoch {epoch}:")
       # fmt: off
-      for i, (x, y) in tqdm(enumerate(train_dataset),
-                            total=train_dataset_len, 
+      for i, (x, y) in tqdm(enumerate(iter(train_dataset)),
+                            total=train_dataset_len,
                             desc=f"epoch {epoch}: train"
       ):
         if i >= starting_iter:
           self.train_step(x, y)
-      for i, (x, y) in tqdm(enumerate(test_dataset),
+      for i, (x, y) in tqdm(enumerate(iter(test_dataset)),
                             total=test_dataset_len,
                             desc=f"epoch {epoch}: validation",
       ):
@@ -155,7 +155,7 @@ class Train:
       # fmt: on
 
       print(
-        f"Epoch {epoch}:\n"
+        f"\nTraining Results | Epoch {epoch}:\n"
         f"--------------\n"
         f"Train:\n"
         f" - Loss: {self.train_loss_metric.result()}\n"
@@ -226,10 +226,8 @@ def main():
   ############################################################
   print(f'\n==> Loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
-  train_dataset = dataset["train"]
-  test_dataset = dataset["test"]
-  train_dataset_len = int(tf.data.experimental.cardinality(train_dataset))
-  test_dataset_len = int(tf.data.experimental.cardinality(test_dataset))
+  train_dataset, train_dataset_len  = dataset["train"], dataset["train_len"]
+  test_dataset, test_dataset_len  = dataset["test"], dataset["test_len"]
 
   print(f'\n==> Creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
