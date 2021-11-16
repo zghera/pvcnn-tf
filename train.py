@@ -141,8 +141,9 @@ class Train:
     test_dataset_len: int,
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Custom training loop."""
-    starting_iter = int(self.train_iter_in_epoch) - 1
-    for epoch in tqdm(range(self.train_epoch - 1, self.epochs)):
+    starting_iter = int(self.train_iter_in_epoch)
+    for epoch in range(self.train_epoch, self.epochs):
+      print(f"Epoch {epoch}:")
       # fmt: off
       for i, (x, y) in enumerate(tqdm(
         train_dataset, total=train_dataset_len, desc=f"epoch {epoch}: train"
@@ -239,8 +240,8 @@ def main():
   optimizer = configs.train.optimizer()
 
   # Init training checkpoint objs to determine how we initialize training objs
-  cur_epoch = tf.Variable(1)
-  cur_iter_in_epoch = tf.Variable(1)
+  cur_epoch = tf.Variable(0)
+  cur_iter_in_epoch = tf.Variable(0)
   checkpoint = tf.train.Checkpoint(
     cur_epoch=cur_epoch,
     cur_iter_in_epoch=cur_iter_in_epoch,
@@ -296,6 +297,6 @@ def main():
 if __name__ == "__main__":
   ############### TODO: Remove after finished debugging ###############
   # tf.data.experimental.enable_debug_mode()
-  tf.config.run_functions_eagerly(True)
+  # tf.config.run_functions_eagerly(True)
   #####################################################################
   main()
