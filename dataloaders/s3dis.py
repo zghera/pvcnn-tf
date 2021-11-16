@@ -107,7 +107,9 @@ def _random_sample_data(
       minval=0,
       maxval=data_num_points,
       dtype=tf.int32,
+      seed=0,
     )
+
   def sample_without_replacement():
     # Courtesy of https://github.com/tensorflow/tensorflow/issues/9260#issuecomment-437875125
     logits = tf.zeros([data_num_points])  # Uniform distribution
@@ -119,21 +121,6 @@ def _random_sample_data(
   indices = tf.cond(data_num_points < desired_num_points, 
                     true_fn=sample_with_replacement,
                     false_fn=sample_without_replacement)
-
-  # if data_num_points < desired_num_points:
-  #   # Sample with replacement
-  #   indices = tf.random.uniform(
-  #     shape=[desired_num_points],
-  #     minval=0,
-  #     maxval=data_num_points,
-  #     dtype=tf.int32,
-  #   )
-  # else:
-  #   # Sample without replacement courtesy of https://github.com/tensorflow/tensorflow/issues/9260#issuecomment-437875125
-  #   logits = tf.zeros([data_num_points])  # Uniform distribution
-  #   # pylint: disable=invalid-unary-operand-type
-  #   z = -tf.math.log(-tf.math.log(tf.random.uniform(tf.shape(logits), 0, 1)))
-  #   _, indices = tf.nn.top_k(logits + z, k=desired_num_points)
 
   data = tf.transpose(tf.gather(data, indices=indices))
   label = tf.gather(label, indices=indices)

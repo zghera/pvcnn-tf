@@ -283,6 +283,7 @@ def main():
 
 if __name__ == "__main__":
   ############### TODO: Remove after finished debugging ############### 
+  #tf.data.experimental.enable_debug_mode()
   tf.config.run_functions_eagerly(True)
   #####################################################################
   main()
