@@ -15,7 +15,7 @@ CL =  configs.data.num_classes
 
 # inputs has shape [B, C, N].
 dummy_model = tf.keras.Sequential()
-dummy_model.add(tf.keras.layers.Reshape((-1)))
+dummy_model.add(tf.keras.layers.Flatten())
 dummy_model.add(tf.keras.layers.Dense(CL * N))
 # output has shape [B, num_classes=13, N].
 dummy_model.add(tf.keras.layers.Reshape((CL, N)))
