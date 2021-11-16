@@ -33,23 +33,17 @@ configs.dataset.is_deterministic = configs.deterministic
 # metrics
 configs.metrics = Config()
 configs.metrics.eval = Config()
-configs.metrics.eval.overall = Config(
-  OverallAccuracy,
-  split="test",
-  num_classes=configs.data.num_classes,
-)
-configs.metrics.eval.iou = Config(
-  IouAccuracy, split="test", num_classes=configs.data.num_classes
-)
+configs.metrics.eval.overall = Config(OverallAccuracy)
+configs.metrics.eval.overall.split = "test"
+configs.metrics.eval.iou = Config(IouAccuracy)
+configs.metrics.eval.iou.split = "test"
+configs.metrics.eval.iou.num_classes = configs.data.num_classes
 configs.metrics.train = Config()
-configs.metrics.train.overall = Config(
-  OverallAccuracy,
-  split="train",
-  num_classes=configs.data.num_classes,
-)
-configs.metrics.train.iou = Config(
-  IouAccuracy, split="train", num_classes=configs.data.num_classes
-)
+configs.metrics.train.overall = Config(OverallAccuracy)
+configs.metrics.train.overall.split = "train"
+configs.metrics.train.iou = Config(IouAccuracy)
+configs.metrics.train.iou.split = "train"
+configs.metrics.train.iou.num_classes = configs.data.num_classes
 
 # Training metric used to determine / save best checkpoint
 configs.train.best_ckpt_metric = configs.metrics.eval.iou
