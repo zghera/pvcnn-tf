@@ -203,14 +203,14 @@ def main():
   #################
   # Configuration #
   #################
-  configs = get_configs()
-  tf.random.set_seed(configs.seed)
-  np.random.seed(configs.seed)
-  # Use channels first format for ease of comparing shapres with original impl.
-  tf.keras.backend.set_image_data_format("channels_first")
   ############### TODO: Remove after finished debugging ############### 
   tf.config.run_functions_eagerly(True)
   #####################################################################
+  # Use channels first format for ease of comparing shapes with original impl.
+  tf.keras.backend.set_image_data_format("channels_first")
+  configs = get_configs()
+  tf.random.set_seed(configs.seed)
+  np.random.seed(configs.seed)
   print("------------ Configuration ------------")
   print(configs)
   print("---------------------------------------")
