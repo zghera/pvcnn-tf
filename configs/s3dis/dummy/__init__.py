@@ -20,4 +20,4 @@ dummy_model.add(tf.keras.layers.Dense(CL * N))
 # output has shape [B, num_classes=13, N].
 dummy_model.add(tf.keras.layers.Reshape((CL, N)))
 
-configs.model = Config(dummy_model)
+configs.model = dummy_model
