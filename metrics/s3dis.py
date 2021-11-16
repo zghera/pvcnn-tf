@@ -4,7 +4,7 @@ import tensorflow as tf
 class OverallAccuracy(tf.keras.metrics.Metric):
   """Mean overall accuracy metric."""
   def __init__(self, split: str, **kwargs) -> None:
-    assert split ["train", "test"]
+    assert split in ["train", "test"]
     super().__init__(name=f"acc/overall_{split}", **kwargs)
     self.reset_state()
 
@@ -34,7 +34,7 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
   likely class to match the labels for comparision.
   """
   def __init__(self, split: str, num_classes: int, **kwargs):
-    assert split ["train", "test"]
+    assert split in ["train", "test"]
     super().__init__(num_classes=num_classes, name=f"acc/iou_{split}", **kwargs)
 
   def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
