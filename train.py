@@ -250,7 +250,7 @@ def main():
   progress_manager = tf.train.CheckpointManager(
     checkpoint,
     directory=configs.train.train_ckpts_path,
-    # max_to_keep=3,
+    max_to_keep=3,
     # step_counter=cur_epoch,
     # checkpoint_interval=1,
   )
