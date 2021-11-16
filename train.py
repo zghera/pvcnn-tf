@@ -97,7 +97,7 @@ class Train:
       print(f"NEW BEST checkpoint. Saved to {save_path}")
 
   @tf.function
-  def train_step(self, sample: tf.Tensor, label: tf.Tensor, dataset_len: int) -> None:
+  def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One train step."""
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
