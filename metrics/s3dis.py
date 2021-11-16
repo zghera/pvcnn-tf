@@ -8,15 +8,15 @@ class OverallAccuracy(tf.keras.metrics.Metric):
   def __init__(self, split: str, **kwargs) -> None:
     assert split in ["train", "test"]
     super().__init__(name=f"acc/overall_{split}", **kwargs)
-    self._total_seen_num = self.add_weight(name="seen", initializer="zeros")
-    self._total_correct_num = self.add_weight(
+    self.total_seen_num = self.add_weight(name="seen", initializer="zeros")
+    self.total_correct_num = self.add_weight(
       name="correct", initializer="zeros"
     )
     self.reset_state()
 
   def reset_state(self) -> None:
-    self._total_seen_num = 0
-    self._total_correct_num = 0
+    self.total_seen_num = 0
+    self.total_correct_num = 0
 
   def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> None:
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
@@ -24,13 +24,13 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     y_pred_categ = tf.math.argmax(y_pred, axis=1)
     tf.debugging.assert_equal(tf.size(y_true_categ), tf.size(y_pred_categ))
 
-    self._total_seen_num.assign_add(tf.size(y_true))
-    self._total_correct_num += tf.reduce_sum(
+    self.total_seen_num += tf.size(y_true)
+    self.total_correct_num += tf.reduce_sum(
       tf.cast(y_true_categ == y_pred_categ, tf.int32)
     )
 
   def result(self) -> None:
-    return self._total_correct_num / self._total_seen_num
+    return self.total_correct_num / self.total_seen_num
 
 
 class IouAccuracy(tf.keras.metrics.MeanIoU):
