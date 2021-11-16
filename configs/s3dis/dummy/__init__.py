@@ -13,11 +13,10 @@ CL =  configs.data.num_classes
 # B = configs.dataset.batch_size
 C = 9 if configs.dataset.use_normalized_coords else 6
 
-# inputs has shape [B, C, N].
+# inputs has shape [B, C=9, N].
 inputs = tf.keras.Input(shape=(C, N))
-x = tf.keras.layers.Flatten()(inputs)
-x = tf.keras.layers.Dense(CL * N, activation="relu")(x)
-outputs = tf.keras.layers.Reshape((CL,N))(x)
+outputs = tf.keras.layers.ZeroPadding1D(padding=2)(inputs)
+# outputs has shape [B, num_classes=13, N].
 
 configs.model = Config(tf.keras.Model)
 configs.model.inputs = inputs
