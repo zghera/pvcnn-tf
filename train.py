@@ -145,14 +145,16 @@ class Train:
     for epoch in range(int(self.train_epoch), self.epochs):
       print(f"Epoch {epoch}:")
       # fmt: off
-      for i, (x, y) in enumerate(tqdm(
-        train_dataset, total=train_dataset_len, desc=f"epoch {epoch}: train"
-      )):
+      for i, (x, y) in tqdm(enumerate(train_dataset),
+                            total=train_dataset_len, 
+                            desc=f"epoch {epoch}: train"
+      ):
         if i >= starting_iter:
           self.train_step(x, y)
-      for i, (x, y) in enumerate(tqdm(
-        test_dataset, total=test_dataset_len, desc=f"epoch {epoch}: validation",
-      )):
+      for i, (x, y) in tqdm(enumerate(test_dataset),
+                            total=test_dataset_len,
+                            desc=f"epoch {epoch}: validation",
+      ):
         if i >= starting_iter:
           self.test_step(x, y)
       # fmt: on
