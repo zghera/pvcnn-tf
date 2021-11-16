@@ -86,10 +86,6 @@ class Train:
     self._best_metric_val = None
     self.autotune = tf.data.experimental.AUTOTUNE
 
-  def _save_train_checkpoint(self) -> None:
-    """Save training checkpoint."""
-    self.progress_manager.save()
-
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
     cur_metric = self.best_ckpt_metric.result()
@@ -115,7 +111,7 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
-    self._save_train_checkpoint()
+    self.progress_manager.save()
     self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
@@ -139,20 +135,12 @@ class Train:
     starting_iter = int(self.train_iter_in_epoch)
     for epoch in range(int(self.train_epoch), self.epochs):
       print(f"\nEpoch {epoch}:")
-      # fmt: off
-      for i, (x, y) in tqdm(enumerate(iter(train_dataset)),
-                            total=train_dataset_len,
-                            desc=f"epoch {epoch}: train"
-      ):
+      for i, (x, y) in enumerate(tqdm(train_dataset, total=train_dataset_len)):
         if i >= starting_iter:
           self.train_step(x, y)
-      for i, (x, y) in tqdm(enumerate(iter(test_dataset)),
-                            total=test_dataset_len,
-                            desc=f"epoch {epoch}: validation",
-      ):
+      for i, (x, y) in enumerate(tqdm(test_dataset, total=test_dataset_len)):
         if i >= starting_iter:
           self.test_step(x, y)
-      # fmt: on
 
       print(
         f"\nTraining Results | Epoch {epoch}:\n"
@@ -226,8 +214,8 @@ def main():
   ############################################################
   print(f'\n==> Loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
-  train_dataset, train_dataset_len  = dataset["train"], dataset["train_len"]
-  test_dataset, test_dataset_len  = dataset["test"], dataset["test_len"]
+  train_dataset, train_dataset_len = dataset["train"], dataset["train_len"]
+  test_dataset, test_dataset_len = dataset["test"], dataset["test_len"]
 
   print(f'\n==> Creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
@@ -290,6 +278,6 @@ def main():
 if __name__ == "__main__":
   ############### TODO: Remove after finished debugging ###############
   # tf.data.experimental.enable_debug_mode()
-  tf.config.run_functions_eagerly(True)
+  # tf.config.run_functions_eagerly(True)
   #####################################################################
   main()
