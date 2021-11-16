@@ -88,11 +88,12 @@ class Train:
 
   def _save_train_checkpoint(self) -> None:
     """Save training checkpoint."""
-    save_path = self.progress_manager.save(check_interval=True)
-    print(
-      f"Saved checkpoint for epoch-iter {int(self.train_epoch)}-"
-      f"{int(self.train_iter_in_epoch)}: {save_path}"
-    )
+    self.progress_manager.save(check_interval=True)
+    # save_path = self.progress_manager.save(check_interval=True)
+    # print(
+    #   f"Saved checkpoint for epoch-iter {int(self.train_epoch)}-"
+    #   f"{int(self.train_iter_in_epoch)}: {save_path}"
+    # )
 
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
