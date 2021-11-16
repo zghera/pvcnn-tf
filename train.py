@@ -111,7 +111,7 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
-    self.progress_manager.save(self.train_epoch * dataset_len + self.train_iter_in_epoch)
+    tf.py_function(self.progress_manager.save, [], [tf.string])
     self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
