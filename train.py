@@ -132,12 +132,20 @@ class Train:
     self,
     train_dataset_it: Iterator[tf.Tensor],
     test_dataset_it: Iterator[tf.Tensor],
+    train_dataset_len: int,
+    test_dataset_len: int,
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Custom training loop."""
-    for epoch in tqdm(range(self.epochs), desc="training"):
-      for x, y in tqdm(train_dataset_it, desc=f"epoch {epoch}: train"):
+    for epoch in tqdm(range(self.train_step_idx - 1, self.epochs)):
+      for x, y in tqdm(
+        train_dataset_it, total=train_dataset_len, desc=f"epoch {epoch}: train"
+      ):
         self.train_step(x, y)
-      for x, y in tqdm(test_dataset_it, desc=f"epoch {epoch}: validation"):
+      for x, y in tqdm(
+        test_dataset_it,
+        total=test_dataset_len,
+        desc=f"epoch {epoch}: validation",
+      ):
         self.test_step(x, y)
 
       print(
@@ -172,10 +180,10 @@ class Train:
 
   # TODO: Need to do this more accurately like orig implementation?
   def eval(
-    self, test_dataset_it: Iterator[tf.Tensor]
+    self, test_dataset_it: Iterator[tf.Tensor], test_dataset_len: int
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Custom model evaluation function."""
-    for x, y in tqdm(test_dataset_it, desc="evaluation"):
+    for x, y in tqdm(test_dataset_it, total=test_dataset_len):
       self.test_step(x, y)
 
     print(
@@ -200,6 +208,9 @@ def main():
   np.random.seed(configs.seed)
   # Use channels first format for ease of comparing shapres with original impl.
   tf.keras.backend.set_image_data_format("channels_first")
+  ############### TODO: Remove after finished debugging ############### 
+  tf.config.run_functions_eagerly(True)
+  #####################################################################
   print("------------ Configuration ------------")
   print(configs)
   print("---------------------------------------")
@@ -207,12 +218,14 @@ def main():
   ############################################################
   # Initialize Dataset(s), Model, Optimizer, & Loss Function #
   ############################################################
-  print(f'\n==> loading dataset "{configs.dataset}"')
+  print(f'\n==> Loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
+  train_dataset_len = int(tf.data.experimental.cardinality(dataset["train"]))
+  test_dataset_len = int(tf.data.experimental.cardinality(dataset["test"]))
   train_dataset_it = iter(dataset["train"])
   test_dataset_it = iter(dataset["test"])
 
-  print(f'\n==> creating model "{configs.model}"')
+  print(f'\n==> Creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
   model = configs.model()
   optimizer = configs.train.optimizer()
@@ -231,7 +244,7 @@ def main():
     directory=configs.train.train_ckpts_path,
     max_to_keep=3,
     step_counter=cur_step,
-    checkpoint_interval=5,  # TODO: Tune this based on how long train step takes
+    checkpoint_interval=1,
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
@@ -249,7 +262,7 @@ def main():
   ############
   # Training #
   ############
-  print("Training...")
+  print("\n==> Training...")
   train_obj = Train(
     epochs=configs.train.num_epochs,
     model=model,
@@ -265,8 +278,10 @@ def main():
     best_ckpt_metric=configs.train.best_ckpt_metric(),
   )
   if configs.eval.is_evaluating:
-    return train_obj.eval(test_dataset_it)
-  return train_obj.train(train_dataset_it, test_dataset_it)
+    return train_obj.eval(test_dataset_it, test_dataset_len)
+  return train_obj.train(
+    train_dataset_it, test_dataset_it, train_dataset_len, test_dataset_len
+  )
 
 
 if __name__ == "__main__":
