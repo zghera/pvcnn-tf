@@ -3,7 +3,7 @@ from typing import Tuple, Iterator
 
 import os
 import argparse
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
@@ -89,11 +89,6 @@ class Train:
   def _save_train_checkpoint(self) -> None:
     """Save training checkpoint."""
     self.progress_manager.save()
-    # save_path = self.progress_manager.save(check_interval=True)
-    # print(
-    #   f"Saved checkpoint for epoch-iter {int(self.train_epoch)}-"
-    #   f"{int(self.train_iter_in_epoch)}: {save_path}"
-    # )
 
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
@@ -254,8 +249,6 @@ def main():
     checkpoint,
     directory=configs.train.train_ckpts_path,
     max_to_keep=3,
-    # step_counter=cur_epoch,
-    # checkpoint_interval=1,
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
