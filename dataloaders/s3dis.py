@@ -53,10 +53,9 @@ def create_s3dis_dataset(
     )
   )
 
-  dataset = dataset.cache()
   if is_train_split:
     dataset = dataset.shuffle(shuffle_size)
-  dataset = dataset.batch(batch_size).prefetch(buffer_size=AUTOTUNE)
+  dataset = dataset.batch(batch_size).cache().prefetch(buffer_size=AUTOTUNE)
 
   return dataset
 

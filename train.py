@@ -209,11 +209,8 @@ def main():
   ############################################################
   print(f'\n==> loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
-  print(dataset)
   train_dataset_it = iter(dataset["train"])
-  print(next(train_dataset_it))
   test_dataset_it = iter(dataset["test"])
-  return
 
   print(f'\n==> creating model "{configs.model}"')
   loss_fn = configs.train.loss_fn()
