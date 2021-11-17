@@ -1,5 +1,7 @@
 """Evaluation metrics for PVCNN S3DIS dataset."""
 import tensorflow as tf
+import numpy as np
+from keras import backend
 
 
 class OverallAccuracy(tf.keras.metrics.Metric):
@@ -14,11 +16,11 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     self._total_correct_num = self.add_weight(
       name="correct", initializer="zeros", dtype=tf.float32
     )
-    self.reset_state()
 
   def reset_state(self) -> None:
-    self._total_seen_num = tf.Variable(0.0)
-    self._total_correct_num = tf.Variable(0.0)
+    backend.batch_set_value([
+      (v, np.zeros(v.shape.as_list())) for v in self.variables
+    ])
 
   def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
