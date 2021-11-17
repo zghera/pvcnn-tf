@@ -195,12 +195,18 @@ class Train:
         tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
       ):
         if i >= starting_iter:
+          print("Lets do a real training step")
           self.train_step(x, y, train_dataset_len)
+        else:
+          print("Skipping ahead until iter", i)
+
+      starting_iter = 0  # Only start part-way through epoch on 1st epoch
+      self.train_iter_in_epoch.assign(0)
+
       for i, (x, y) in enumerate(
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
-        if i >= starting_iter:
-          self.test_step(x, y)
+        self.test_step(x, y)
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint()
@@ -208,8 +214,6 @@ class Train:
       if epoch != self.epochs - 1:
         self._reset_metrics()
 
-      starting_iter = 0  # Only start part-way through epoch on 1st epoch
-      self.train_iter_in_epoch.assign(0)
       self.train_epoch.assign_add(1)
 
     return self.saved_metrics
