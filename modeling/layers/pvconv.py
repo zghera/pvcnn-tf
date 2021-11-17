@@ -6,7 +6,7 @@ import tensorflow as tf
 from modeling.layers.voxelization import Voxelization
 from modeling.layers.mlp import ConvBn
 
-from ops.voxelization_ops import trilinear_devoxelize
+from ops import trilinear_devoxelize
 
 
 class PVConv(tf.keras.layers.Layer):
@@ -39,33 +39,44 @@ class PVConv(tf.keras.layers.Layer):
     )
     # TODO: Verify 'same' padding is consistent with original implementation
     #       in case they use a kernel size other than 3.
-    self._conv = tf.keras.layers.Conv3D(
-      self._out_channels,
-      self._kernel_size,
-      padding="same",
-      kernel_regularizer=self._kernel_regularizer,
-    )
-    self._bn = tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
-    self._lrelu = tf.keras.layers.LeakyReLU(alpha=0.1)
+    self._voxel_layers = []
+    for _ in range(2):
+      self._voxel_layers.append(
+        tf.keras.layers.Conv3D(
+          self._out_channels,
+          self._kernel_size,
+          padding="same",
+          kernel_regularizer=self._kernel_regularizer,
+        )
+      )
+      self._voxel_layers.append(
+        tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
+      )
+      self._voxel_layers.append(tf.keras.layers.LeakyReLU(alpha=0.1))
+
     self._point_features = ConvBn(
       out_channels=self._out_channels,
       kernel_regularizer=self._kernel_regularizer,
     )
 
-    features_shape, _ = input_shape  # features_shape = [B, C, R, R, R]
-    self._squeeze = tf.keras.layers.Reshape((features_shape[1], -1))
+    self._squeeze = tf.keras.layers.Reshape((self._out_channels, -1))
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
+    # IC = input channels | OC = output channels (self._out_channels)
+    # features = [B, IC, N]  |  coords = [B, 3, N]
     features, coords = inputs
-    voxel_features, voxel_coords = self._voxelization(features, coords)
-    for _ in range(2):
-      voxel_features = self._conv(voxel_features)
-      voxel_features = self._bn(voxel_features)
-      voxel_features = self._lrelu(voxel_features)
+    voxel_features, voxel_coords = self._voxelization((features, coords))
+    # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
+    for layer in self._voxel_layers:
+      voxel_features = layer(voxel_features)
+    # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)
-    voxel_features = trilinear_devoxelize(
+    # |--> voxel_features = [B, OC, R**3]
+    voxel_features, _, _ = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
+    # |--> voxel_features = [B, OC, N]
     fused_features = voxel_features + self._point_features(features)
+    # |--> fused_features = [B, OC, N]
     return fused_features, coords

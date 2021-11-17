@@ -1,5 +1,5 @@
 """MLP blocks."""
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 import tensorflow as tf
 
 
@@ -15,7 +15,7 @@ class ConvBn(tf.keras.layers.Layer):
     self,
     out_channels: int,
     dim: int = 1,
-    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+    kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
     **kwargs,
   ):
     assert dim in (1, 2), "Only use 1 or 2 dim conv layers for ConvBn block."
@@ -30,6 +30,7 @@ class ConvBn(tf.keras.layers.Layer):
       "filters": self._out_channels,
       "kernel_size": 1,
       "kernel_regularizer": self._kernel_regularizer,
+      "data_format": None,  # Ensure Conv1D uses keras.backend.image_data_format
     }
     if self._dim == 1:
       self._conv = tf.keras.layers.Conv1D(**conv_args)
@@ -62,7 +63,7 @@ class DenseBn(tf.keras.layers.Layer):
   def __init__(
     self,
     out_channels: int,
-    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+    kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
     **kwargs,
   ):
     super().__init__(**kwargs)
@@ -70,7 +71,7 @@ class DenseBn(tf.keras.layers.Layer):
     self._kernel_regularizer = kernel_regularizer
 
   def build(self, input_shape) -> None:
-    self._fc = tf.keras.layer.Dense(
+    self._fc = tf.keras.layers.Dense(
       self._out_channels, kernel_regularizer=self._kernel_regularizer
     )
     self._bn = tf.keras.layers.BatchNormalization()

@@ -1,6 +1,6 @@
 """Common sub-models / components for the networks implemented for PVCNN."""
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import functools
 import tensorflow as tf
 
@@ -15,7 +15,7 @@ def create_pointnet_components(
   eps: float = 0,
   normalize: bool = True,
   with_se: bool = False,
-  kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+  kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
 ) -> List[tf.keras.layers.Layer]:
   r, vr = width_multiplier, voxel_resolution_multiplier
 
@@ -45,7 +45,7 @@ def create_mlp_components(
   is_classifier: bool,
   dim: int,
   width_multiplier: float,
-  kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+  kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
 ) -> List[tf.keras.layers.Layer]:
   assert dim in (1, 2), "Only use 1 or 2 dim layers for MLP blocks"
 
@@ -58,9 +58,7 @@ def create_mlp_components(
   layers = []
   for oc in out_channels[:-1]:
     if oc < 1:
-      layers.append(
-        tf.keras.layers.Dropout(oc, kernel_regularizer=kernel_regularizer)
-      )
+      layers.append(tf.keras.layers.Dropout(oc))
     else:
       layers.append(block(int(r * oc), kernel_regularizer=kernel_regularizer))
 
@@ -80,10 +78,11 @@ def create_mlp_components(
   else:
     if is_classifier:
       layers.append(
-        tf.keras.layers.Conv1d(
+        tf.keras.layers.Conv1D(
           filters=out_channels[-1],
-          kernel=1,
+          kernel_size=1,
           kernel_regularizer=kernel_regularizer,
+          data_format=None, # Ensure Conv1D uses keras.backend.image_data_format
         )
       )
     else:
@@ -145,12 +144,11 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
 
   def call(self, inputs, training=None) -> tf.Tensor:
     # Get maximum channel value for each channel over all of the points
-    inputs = tf.math.reduce_max(inputs, axis=-1)
-    x = inputs
+    x = tf.math.reduce_max(inputs, axis=-1)
     for layer in self._layers:
       x = layer(x, training=training)
     # Duplicate output tensor for N size num_points dimension
-    return tf.repeat(tf.expand_dims(x, axis=-1), inputs.size(-1), axis=-1)
+    return tf.repeat(tf.expand_dims(x, axis=-1), inputs.shape[-1], axis=-1)
 
 
 class ClassificationHead(tf.keras.layers.Layer):

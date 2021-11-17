@@ -2,7 +2,7 @@
 from typing import Tuple
 import tensorflow as tf
 
-from ops.voxelization_ops import avg_voxelize
+from ops import avg_voxelize
 
 
 class Voxelization(tf.keras.layers.Layer):
@@ -17,17 +17,21 @@ class Voxelization(tf.keras.layers.Layer):
     self._eps = eps
 
   def build(self, input_shape) -> None:
-    _, coords_shape = input_shape
-    self._norm_coords = self.add_weight(shape=coords_shape, trainable=True)
+    features_shape, coords_shape = input_shape
+    self._num_batches, self._num_channels, _ = features_shape
+
+    self._norm_coords = self.add_weight(
+     name='norm_coords', shape=coords_shape, trainable=True)
     self._vox_coords = self.add_weight(
-      shape=coords_shape, dtype=tf.int32, trainable=True
+     name='vox_coords', shape=coords_shape, dtype=tf.int32, trainable=True
     )
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
-    # See modeling/layers/submodules.PointFeaturesBranch.call for more
-    # info on features, coords
+    # See modeling/layers/pvconv `PVConv.call` for more info on features, coords
     features, coords = inputs
+    B, C, R = self._num_batches, self._num_channels, self._resolution
+
     self._norm_coords = coords - tf.math.reduce_mean(
       coords, axis=2, keepdims=True
     )
@@ -44,16 +48,10 @@ class Voxelization(tf.keras.layers.Layer):
     else:
       self._norm_coords = (self._norm_coords + 1) / 2.0
 
-    self._norm_coords = tf.clip_by_value(
-      self._norm_coords * self._resoltion, 0, self._resolution - 1
-    )
+    self._norm_coords = tf.clip_by_value(self._norm_coords * R, 0, R - 1)
     self._vox_coords = tf.cast(tf.round(self._norm_coords), dtype=tf.int32)
 
-    vox_features_sqzd, _, _ = avg_voxelize(
-      features, self._vox_coords, self._resolution
-    )
-    B, C, _ = features.shape
-    R = self._resolution
+    vox_features_sqzd, _, _ = avg_voxelize(features, self._vox_coords, R)
     voxelized_features = tf.reshape(vox_features_sqzd, shape=(B, C, R, R, R))
 
-    return voxelized_features, self.norm_cords
+    return voxelized_features, self._norm_coords

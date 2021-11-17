@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from utils.common import get_save_path
+from utils.common import get_save_path, config_gpu
 
 MetricsDict = Dict[str, tf.keras.metrics.Metric]
 
@@ -111,11 +111,11 @@ class Train:
       f"--------------\n"
       f"Train:\n"
       f" - Loss: {self.train_loss_metric.result().numpy()}\n"
-      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy() * 100}\n"
+      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy() * 100}\n" # pylint: disable=line-too-long
       f" - IOU Accuracy: {self.train_iou_acc_metric.result().numpy() * 100}\n"
       f"Validation:\n"
       f" - Loss: {self.eval_loss_metric.result()}\n"
-      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy() * 100}\n"
+      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy() * 100}\n"  # pylint: disable=line-too-long
       f" - IOU Accuracy: {self.eval_iou_acc_metric.result().numpy() * 100}\n\n"
     )
     # fmt: on
@@ -164,11 +164,8 @@ class Train:
     self.train_iou_acc_metric.update_state(label, predictions)
 
     def _save():
-      self.progress_manager.save(
-        checkpoint_number=(
-          batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
-        )
-      )
+      ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+      self.progress_manager.save(checkpoint_number=ckpt_num)
 
     tf.py_function(_save, [], [])
     self.train_iter_in_epoch.assign_add(1)
@@ -199,7 +196,6 @@ class Train:
       ):
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
-          break # TODO: Remove after debugging !!!!!!!!!!!!!!
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -208,7 +204,6 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
-        break # TODO: Remove after debugging !!!!!!!!!!!!!!
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint(epoch)
@@ -274,6 +269,7 @@ def main():
   #################
   # Use channels first format for ease of comparing shapes with original impl.
   tf.keras.backend.set_image_data_format("channels_first")
+  config_gpu()
   configs = get_configs()
   tf.random.set_seed(configs.seed)
   np.random.seed(configs.seed)
@@ -317,13 +313,11 @@ def main():
     directory=configs.train.train_ckpts_path,
     max_to_keep=3,
     step_counter=cur_iter_in_epoch,
-    checkpoint_interval=5,  # TODO: Tune based length of a train iter.
+    checkpoint_interval=100,
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
-    directory=configs.eval.best_ckpt_path
-    if configs.eval.is_evaluating
-    else configs.train.best_ckpt_path,
+    directory=configs.train.best_ckpt_path,
     max_to_keep=1,
   )
   if configs.eval.is_evaluating:
