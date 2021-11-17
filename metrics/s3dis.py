@@ -16,6 +16,7 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     self._total_correct_num = self.add_weight(
       name="correct", initializer="zeros", dtype=tf.float32
     )
+    print(f"Init: total_seen={self._total_seen_num} | total_correct={self._total_correct_num}")
 
   def reset_state(self) -> None:
     backend.batch_set_value([
@@ -32,8 +33,10 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     self._total_correct_num.assign_add(
       tf.reduce_sum(tf.cast(y_true_categ == y_pred_categ, dtype=tf.float32))
     )
+    print(f"Update: total_seen={self._total_seen_num} | total_correct={self._total_correct_num}")
 
   def result(self) -> None:
+    print(f"Result: total_seen={self._total_seen_num} | total_correct={self._total_correct_num}")
     return self._total_correct_num / self._total_seen_num
 
 
