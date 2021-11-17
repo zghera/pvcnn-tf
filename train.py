@@ -6,6 +6,7 @@ import argparse
 from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 from utils.common import get_save_path
 
@@ -90,17 +91,15 @@ class Train:
     self.saved_metrics = saved_metrics
     self.autotune = tf.data.experimental.AUTOTUNE
 
-  def _save_if_best_checkpoint(self) -> None:
+  def _save_if_best_checkpoint(self, epoch: int) -> None:
     """Save training checkpoint if best model so far."""
     cur_metric = self.best_ckpt_metric.result().numpy()
     if self._best_metric_val is None:
       self._best_metric_val = cur_metric
-    # TODO: Replace!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # if cur_metric > self._best_metric_val:
-    if True:
+    if cur_metric > self._best_metric_val:
       self._best_metric_val = cur_metric
-      save_path = self.best_manager.save()
-      print(f"NEW BEST checkpoint. Saved to {save_path}")
+      save_path = self.best_manager.save(checkpoint_number=epoch)
+      print(f"NEW BEST checkpoint at epoch {epoch}! Saved to {save_path}\n\n")
 
   def _print_training_results(
     self, epoch: int, iter_in_epoch: Optional[int] = None
@@ -198,7 +197,6 @@ class Train:
       ):
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
-          break
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -207,10 +205,9 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
-        break
 
       self._print_training_results(epoch)
-      self._save_if_best_checkpoint()
+      self._save_if_best_checkpoint(epoch)
       self._save_metrics()
       if epoch != self.epochs - 1:
         self._reset_metrics()
@@ -238,6 +235,34 @@ class Train:
       self.eval_overall_acc_metric.result().numpy(),
       self.eval_iou_acc_metric.result().numpy(),
     )
+
+
+def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
+  _, (ax1, ax2) = plt.subplots(
+    nrows=2, ncols=1, sharex=True, figsize=(16, 16)
+  )
+
+  ax1.plot(train_metrics["train_loss"])
+  ax1.plot(train_metrics["val_loss"])
+  ax1.legend(["Train Set", "Validation Set"], loc="upper right")
+  ax1.set_title("Loss vs Epoch")
+  ax1.set_ylabel("Loss")
+  ax1.set_xlabel("Epoch")
+
+  ax2.plot(train_metrics["train_overall_acc"])
+  ax2.plot(train_metrics["train_iou_acc"])
+  ax2.plot(train_metrics["val_overall_acc"])
+  ax2.plot(train_metrics["val_iou_acc"])
+  ax2.legend(
+    ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
+    loc="upper right",
+  )
+  ax2.set_title("Accuracy vs Epoch")
+  ax2.set_ylabel("Accuracy")
+  ax2.set_xlabel("Epoch")
+
+  plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
+  plt.savefig(plot_path)
 
 
 def main():
@@ -299,10 +324,10 @@ def main():
     max_to_keep=1,
   )
   if configs.eval.is_evaluating:
-    checkpoint.restore(best_manager.latest_checkpoint).expect_partial()
+    checkpoint.restore(best_manager.latest_checkpoint)
   elif not configs.train.restart_training:
     # Training and resuming progress from last created checkpoint
-    checkpoint.restore(progress_manager.latest_checkpoint).expect_partial()
+    checkpoint.restore(progress_manager.latest_checkpoint)
 
   #########################
   # Training / Evaluation #
@@ -325,10 +350,11 @@ def main():
     saved_metrics=saved_metrics,
   )
   if configs.eval.is_evaluating:
-    return train_obj.eval(test_dataset, test_dataset_len)
-  return train_obj.train(
+    train_obj.eval(test_dataset, test_dataset_len)
+  train_metrics = train_obj.train(
     train_dataset, test_dataset, train_dataset_len, test_dataset_len
   )
+  plot_train_results(train_metrics, configs.train.save_path)
 
 
 if __name__ == "__main__":
