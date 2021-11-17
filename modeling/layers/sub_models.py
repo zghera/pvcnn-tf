@@ -58,9 +58,7 @@ def create_mlp_components(
   layers = []
   for oc in out_channels[:-1]:
     if oc < 1:
-      layers.append(
-        tf.keras.layers.Dropout(oc)
-      )
+      layers.append(tf.keras.layers.Dropout(oc))
     else:
       layers.append(block(int(r * oc), kernel_regularizer=kernel_regularizer))
 

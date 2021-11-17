@@ -58,7 +58,7 @@ class PVConv(tf.keras.layers.Layer):
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
     features, coords = inputs
-    voxel_features, voxel_coords = self._voxelization(features, coords)
+    voxel_features, voxel_coords = self._voxelization((features, coords))
     for _ in range(2):
       voxel_features = self._conv(voxel_features)
       voxel_features = self._bn(voxel_features)
