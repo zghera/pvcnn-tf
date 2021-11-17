@@ -1,5 +1,5 @@
 """PVCNN S3DIS Training."""
-from typing import Tuple, Iterator
+from typing import Tuple, Iterator, Dict, Optional
 
 import os
 import argparse
@@ -8,6 +8,8 @@ import numpy as np
 import tensorflow as tf
 
 from utils.common import get_save_path
+
+MetricsDict = Dict[str, tf.keras.metrics.Metric]
 
 
 def get_configs():
@@ -67,6 +69,7 @@ class Train:
     eval_overall_metric: tf.keras.metrics.Metric,
     eval_iou_metric: tf.keras.metrics.Metric,
     best_ckpt_metric: tf.keras.metrics.Metric,
+    saved_metrics: MetricsDict,
   ) -> None:
     self.epochs = epochs
     self.model = model
@@ -84,6 +87,7 @@ class Train:
     self.eval_loss_metric = tf.keras.metrics.Mean(name="eval_loss")
     self.best_ckpt_metric = best_ckpt_metric
     self._best_metric_val = None
+    self.saved_metrics = saved_metrics
     self.autotune = tf.data.experimental.AUTOTUNE
 
   def _save_if_best_checkpoint(self) -> None:
@@ -95,6 +99,49 @@ class Train:
       self._best_metric_val = cur_metric
       save_path = self.best_manager.save()
       print(f"NEW BEST checkpoint. Saved to {save_path}")
+
+  def _print_training_results(
+    self, epoch: int, iter_in_epoch: Optional[int] = None
+  ):
+    it_str = "" if iter_in_epoch is None else f" | Iteration {iter_in_epoch}"
+    print(
+      f"\nTraining Results | Epoch {epoch}{it_str}:\n"
+      f"--------------\n"
+      f"Train:\n"
+      f" - Loss: {self.train_loss_metric.result().numpy()}\n"
+      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy()}\n"
+      f" - IOU Accuracy: {self.train_iou_acc_metric.result().numpy()}\n"
+      f"Validation:\n"
+      f" - Loss: {self.eval_loss_metric.result()}\n"
+      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy()}\n"
+      f" - IOU Accuracy: {self.eval_iou_acc_metric.result().numpy()}\n\n"
+    )
+
+  def _save_metrics(self):
+    self.saved_metrics["train_loss"].append(
+      self.train_loss_metric.result().numpy()
+    )
+    self.saved_metrics["train_overall_acc"].append(
+      self.train_overall_acc_metric.result().numpy()
+    )
+    self.saved_metrics["train_iou_acc"].append(
+      self.train_iou_acc_metric.result().numpy()
+    )
+    self.saved_metrics["val_loss"].append(self.eval_loss_metric.result())
+    self.saved_metrics["val_overall_acc"].append(
+      self.eval_overall_acc_metric.result().numpy()
+    )
+    self.saved_metrics["val_iou_acc"].append(
+      self.eval_iou_acc_metric.result().numpy()
+    )
+
+  def _reset_metrics(self):
+    self.train_loss_metric.reset_states()
+    self.train_overall_acc_metric.reset_states()
+    self.train_iou_acc_metric.reset_states()
+    self.eval_loss_metric.reset_states()
+    self.eval_overall_acc_metric.reset_states()
+    self.eval_iou_acc_metric.reset_states()
 
   @tf.function
   def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
@@ -118,7 +165,7 @@ class Train:
   def test_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One test step."""
     predictions = self.model(sample, training=False)
-    loss = self.loss_object(label, predictions)
+    loss = self.loss_fn(label, predictions)
 
     self.eval_loss_metric.update_state(loss)
     self.eval_overall_acc_metric.update_state(label, predictions)
@@ -130,7 +177,7 @@ class Train:
     test_dataset: tf.data.Dataset,
     train_dataset_len: int,
     test_dataset_len: int,
-  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+  ) -> MetricsDict:
     """Custom training loop."""
     starting_iter = int(self.train_iter_in_epoch)
     for epoch in range(int(self.train_epoch), self.epochs):
@@ -138,43 +185,22 @@ class Train:
       for i, (x, y) in enumerate(tqdm(train_dataset, total=train_dataset_len)):
         if i >= starting_iter:
           self.train_step(x, y)
+          self._print_training_results(epoch, i)
       for i, (x, y) in enumerate(tqdm(test_dataset, total=test_dataset_len)):
         if i >= starting_iter:
           self.test_step(x, y)
 
-      print(
-        f"\nTraining Results | Epoch {epoch}:\n"
-        f"--------------\n"
-        f"Train:\n"
-        f" - Loss: {self.train_loss_metric.result()}\n"
-        f" - Overall Accuracy: {self.train_overall_acc_metric.result()}\n"
-        f" - IOU Accuracy: {self.train_iou_acc_metric.result()}\n"
-        f"Validation:\n"
-        f" - Loss: {self.eval_loss_metric.result()}\n"
-        f" - Overall Accuracy: {self.eval_overall_acc_metric.result()}\n"
-        f" - IOU Accuracy: {self.eval_iou_acc_metric.result()}\n\n"
-      )
+      self._print_training_results(epoch)
       self._save_if_best_checkpoint()
+      self._save_metrics()
       if epoch != self.epochs - 1:
-        self.train_loss_metric.reset_states()
-        self.train_overall_acc_metric.reset_states()
-        self.train_iou_acc_metric.reset_states()
-        self.eval_loss_metric.reset_states()
-        self.eval_overall_acc_metric.reset_states()
-        self.eval_iou_acc_metric.reset_states()
+        self._reset_metrics()
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
       self.train_epoch.assign_add(1)
 
-    return (
-      self.train_loss_metric.result().numpy(),
-      self.train_overall_acc_metric.result().numpy(),
-      self.train_iou_acc_metric.result().numpy(),
-      self.eval_loss_metric.result().numpy(),
-      self.eval_overall_acc_metric.result().numpy(),
-      self.eval_iou_acc_metric.result().numpy(),
-    )
+    return self.saved_metrics
 
   # TODO: Need to do this more accurately like orig implementation?
   def eval(
@@ -222,6 +248,14 @@ def main():
   loss_fn = configs.train.loss_fn()
   model = configs.model()
   optimizer = configs.train.optimizer()
+  saved_metrics: MetricsDict = {
+    "train_loss": [],
+    "train_overall_acc": [],
+    "train_iou_acc": [],
+    "val_loss": [],
+    "val_overall_acc": [],
+    "val_iou_acc": [],
+  }
 
   # Init training checkpoint objs to determine how we initialize training objs
   cur_epoch = tf.Variable(0)
@@ -231,6 +265,7 @@ def main():
     cur_iter_in_epoch=cur_iter_in_epoch,
     model=model,
     optimizer=optimizer,
+    saved_metrics=saved_metrics,
   )
   progress_manager = tf.train.CheckpointManager(
     checkpoint,
@@ -250,9 +285,9 @@ def main():
     # Training and resuming progress from last created checkpoint
     checkpoint.restore(progress_manager.latest_checkpoint).assert_consumed()
 
-  ############
-  # Training #
-  ############
+  #########################
+  # Training / Evaluation #
+  #########################
   print("\n==> Training...")
   train_obj = Train(
     epochs=configs.train.num_epochs,
@@ -268,6 +303,7 @@ def main():
     eval_overall_metric=configs.metrics.eval.overall(),
     eval_iou_metric=configs.metrics.eval.iou(),
     best_ckpt_metric=configs.train.best_ckpt_metric(),
+    saved_metrics=saved_metrics,
   )
   if configs.eval.is_evaluating:
     return train_obj.eval(test_dataset, test_dataset_len)
