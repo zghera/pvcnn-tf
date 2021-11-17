@@ -13,6 +13,7 @@ from utils.config import Config, configs
 
 # sub-models
 configs.submodel = Config()
+configs.submodel.width_multiplier = 1
 configs.submodel.kernel_reg = L2(1e-5)
 
 configs.point_branch = Config(PointFeaturesBranch)
@@ -24,16 +25,16 @@ configs.point_branch.blocks = (
 )
 configs.point_branch.width_multiplier = configs.submodel.width_multiplier
 configs.point_branch.voxel_resolution_multiplier = 1
-configs.point_branch.kernel_reg = configs.submodel.kernel_reg
+configs.point_branch.kernel_regularizer = configs.submodel.kernel_reg
 
 configs.cloud_branch = Config(CloudFeaturesBranch)
 configs.cloud_branch.width_multiplier = configs.submodel.width_multiplier
-configs.cloud_branch.kernel_reg = configs.submodel.kernel_reg
+configs.cloud_branch.kernel_regularizer = configs.submodel.kernel_reg
 
 configs.classification_head = Config(ClassificationHead)
 configs.classification_head.num_classes = configs.data.num_classes
 configs.classification_head.width_multiplier = configs.submodel.width_multiplier
-configs.classification_head.kernel_reg = configs.submodel.kernel_reg
+configs.classification_head.kernel_regularizer = configs.submodel.kernel_reg
 
 # model
 configs.model = Config(PVCNN)
@@ -46,5 +47,5 @@ configs.dataset.num_points = 4096
 
 # train: scheduler
 configs.train.optimizer.learning_rate = Config(CosineDecay)
-configs.train.scheduler.learning_rate.initial_learning_rate = 1e-3
-configs.train.scheduler.learning_rate.decay_steps = configs.train.num_epochs
+configs.train.optimizer.learning_rate.initial_learning_rate = 1e-3
+configs.train.optimizer.learning_rate.decay_steps = configs.train.num_epochs

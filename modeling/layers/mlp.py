@@ -1,5 +1,5 @@
 """MLP blocks."""
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 import tensorflow as tf
 
 
@@ -15,7 +15,7 @@ class ConvBn(tf.keras.layers.Layer):
     self,
     out_channels: int,
     dim: int = 1,
-    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+    kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
     **kwargs,
   ):
     assert dim in (1, 2), "Only use 1 or 2 dim conv layers for ConvBn block."
@@ -62,7 +62,7 @@ class DenseBn(tf.keras.layers.Layer):
   def __init__(
     self,
     out_channels: int,
-    kernel_regularizer: tf.keras.regularizers.Regularizer = None,
+    kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
     **kwargs,
   ):
     super().__init__(**kwargs)

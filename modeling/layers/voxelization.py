@@ -2,7 +2,7 @@
 from typing import Tuple
 import tensorflow as tf
 
-from ops.voxelization_ops import avg_voxelize
+from ops import avg_voxelize
 
 
 class Voxelization(tf.keras.layers.Layer):

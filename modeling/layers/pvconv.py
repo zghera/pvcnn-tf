@@ -6,7 +6,7 @@ import tensorflow as tf
 from modeling.layers.voxelization import Voxelization
 from modeling.layers.mlp import ConvBn
 
-from ops.voxelization_ops import trilinear_devoxelize
+from ops import trilinear_devoxelize
 
 
 class PVConv(tf.keras.layers.Layer):
