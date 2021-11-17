@@ -197,6 +197,7 @@ class Train:
       ):
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
+          break
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -205,6 +206,7 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
+        break
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint(epoch)
