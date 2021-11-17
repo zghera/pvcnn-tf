@@ -4,6 +4,7 @@ import tensorflow as tf
 from utils.config import Config, configs
 
 # dataset
+configs.train.num_epochs = 1
 configs.dataset.num_points = 4096
 configs.dataset.holdout_area = 5
 

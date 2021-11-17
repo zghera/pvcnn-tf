@@ -185,7 +185,6 @@ class Train:
       for i, (x, y) in enumerate(tqdm(train_dataset, total=train_dataset_len)):
         if i >= starting_iter:
           self.train_step(x, y)
-          self._print_training_results(epoch, i)
       for i, (x, y) in enumerate(tqdm(test_dataset, total=test_dataset_len)):
         if i >= starting_iter:
           self.test_step(x, y)
