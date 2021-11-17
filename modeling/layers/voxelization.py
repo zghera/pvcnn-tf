@@ -50,7 +50,9 @@ class Voxelization(tf.keras.layers.Layer):
     self._norm_coords = tf.clip_by_value(self._norm_coords * R, 0, R - 1)
     self._vox_coords = tf.cast(tf.round(self._norm_coords), dtype=tf.int32)
 
-    vox_features_sqzd, _, _ = avg_voxelize(features, self._vox_coords, R)
+    vox_features_sqzd, _, _ = avg_voxelize(
+      features, self._vox_coords, tf.constant(R)
+    )
     voxelized_features = tf.reshape(vox_features_sqzd, shape=(B, C, R, R, R))
 
     return voxelized_features, self._norm_coords
