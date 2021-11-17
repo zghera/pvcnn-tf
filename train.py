@@ -294,10 +294,10 @@ def main():
     max_to_keep=1,
   )
   if configs.eval.is_evaluating:
-    checkpoint.restore(best_manager.latest_checkpoint).assert_consumed()
+    checkpoint.restore(best_manager.latest_checkpoint).expect_partial()
   elif not configs.train.restart_training:
     # Training and resuming progress from last created checkpoint
-    checkpoint.restore(progress_manager.latest_checkpoint).assert_consumed()
+    checkpoint.restore(progress_manager.latest_checkpoint).expect_partial()
 
   #########################
   # Training / Evaluation #
