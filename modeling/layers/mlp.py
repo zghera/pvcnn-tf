@@ -30,6 +30,7 @@ class ConvBn(tf.keras.layers.Layer):
       "filters": self._out_channels,
       "kernel_size": 1,
       "kernel_regularizer": self._kernel_regularizer,
+      "data_format": None,  # Ensure Conv1D uses keras.backend.image_data_format
     }
     if self._dim == 1:
       self._conv = tf.keras.layers.Conv1D(**conv_args)
