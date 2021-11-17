@@ -1,7 +1,7 @@
 """"PVCNN Model Definition."""
 
 import tensorflow as tf
-from modeling.layers.sub_models import (
+from modeling.layers import (
   PointFeaturesBranch,
   CloudFeaturesBranch,
   ClassificationHead,

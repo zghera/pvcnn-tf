@@ -111,11 +111,11 @@ class Train:
       f"--------------\n"
       f"Train:\n"
       f" - Loss: {self.train_loss_metric.result().numpy()}\n"
-      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy() * 100}\n"
+      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy() * 100}\n" # pylint: disable=line-too-long
       f" - IOU Accuracy: {self.train_iou_acc_metric.result().numpy() * 100}\n"
       f"Validation:\n"
       f" - Loss: {self.eval_loss_metric.result()}\n"
-      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy() * 100}\n"
+      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy() * 100}\n"  # pylint: disable=line-too-long
       f" - IOU Accuracy: {self.eval_iou_acc_metric.result().numpy() * 100}\n\n"
     )
     # fmt: on
@@ -363,7 +363,7 @@ def main():
 
 if __name__ == "__main__":
   ################# Debugging #################
-  # tf.data.experimental.enable_debug_mode()
-  # tf.config.run_functions_eagerly(True)
+  tf.data.experimental.enable_debug_mode()
+  tf.config.run_functions_eagerly(True)
   #############################################
   main()
