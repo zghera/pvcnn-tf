@@ -105,35 +105,37 @@ class Train:
     self, epoch: int, iter_in_epoch: Optional[int] = None
   ):
     it_str = "" if iter_in_epoch is None else f" | Iteration {iter_in_epoch}"
+    # fmt: off
     print(
       f"\nTraining Results | Epoch {epoch}{it_str}:\n"
       f"--------------\n"
       f"Train:\n"
       f" - Loss: {self.train_loss_metric.result().numpy()}\n"
-      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy()}\n"
-      f" - IOU Accuracy: {self.train_iou_acc_metric.result().numpy()}\n"
+      f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy() * 100}\n"
+      f" - IOU Accuracy: {self.train_iou_acc_metric.result().numpy() * 100}\n"
       f"Validation:\n"
       f" - Loss: {self.eval_loss_metric.result()}\n"
-      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy()}\n"
-      f" - IOU Accuracy: {self.eval_iou_acc_metric.result().numpy()}\n\n"
+      f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy() * 100}\n"
+      f" - IOU Accuracy: {self.eval_iou_acc_metric.result().numpy() * 100}\n\n"
     )
+    # fmt: on
 
   def _save_metrics(self):
     self.saved_metrics["train_loss"].append(
       self.train_loss_metric.result().numpy()
     )
     self.saved_metrics["train_overall_acc"].append(
-      self.train_overall_acc_metric.result().numpy()
+      self.train_overall_acc_metric.result().numpy() * 100
     )
     self.saved_metrics["train_iou_acc"].append(
-      self.train_iou_acc_metric.result().numpy()
+      self.train_iou_acc_metric.result().numpy() * 100
     )
     self.saved_metrics["val_loss"].append(self.eval_loss_metric.result())
     self.saved_metrics["val_overall_acc"].append(
-      self.eval_overall_acc_metric.result().numpy()
+      self.eval_overall_acc_metric.result().numpy() * 100
     )
     self.saved_metrics["val_iou_acc"].append(
-      self.eval_iou_acc_metric.result().numpy()
+      self.eval_iou_acc_metric.result().numpy() * 100
     )
 
   def _reset_metrics(self):
@@ -197,7 +199,7 @@ class Train:
       ):
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
-          break
+          break # TODO: REMOVE !!!!!!!!!!!!!!!!!!!!!!!!
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -206,7 +208,7 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
-        break
+        break # TODO: REMOVE !!!!!!!!!!!!!!!!!!!!!!!!
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint(epoch)
@@ -241,7 +243,7 @@ class Train:
 
 def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(
-    nrows=2, ncols=1, sharex=True, figsize=(16, 16)
+    nrows=2, ncols=1, sharex=True, figsize=(10, 10)
   )
 
   ax1.plot(train_metrics["train_loss"])
@@ -356,6 +358,7 @@ def main():
   train_metrics = train_obj.train(
     train_dataset, test_dataset, train_dataset_len, test_dataset_len
   )
+
   plot_train_results(train_metrics, configs.train.save_path)
 
 
