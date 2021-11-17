@@ -363,7 +363,7 @@ def main():
 
 if __name__ == "__main__":
   ################# Debugging #################
-  tf.data.experimental.enable_debug_mode()
-  tf.config.run_functions_eagerly(True)
+  # tf.data.experimental.enable_debug_mode()
+  # tf.config.run_functions_eagerly(True)
   #############################################
   main()
