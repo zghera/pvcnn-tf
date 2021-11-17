@@ -52,20 +52,26 @@ class PVConv(tf.keras.layers.Layer):
       kernel_regularizer=self._kernel_regularizer,
     )
 
-    features_shape, _ = input_shape  # features_shape = [B, C, R, R, R]
+    features_shape, _ = input_shape
     self._squeeze = tf.keras.layers.Reshape((features_shape[1], -1))
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
+    # features = [B, C, N]  |  coords = [B, 3, N]
     features, coords = inputs
     voxel_features, voxel_coords = self._voxelization((features, coords))
+    # |--> voxel_features = [B, C, R, R, R]  |  voxel_coords = [B, 3, N]
     for _ in range(2):
       voxel_features = self._conv(voxel_features)
+      print(f"conv3d #{_} out shape={voxel_features.shape}")
       voxel_features = self._bn(voxel_features)
       voxel_features = self._lrelu(voxel_features)
     voxel_features = self._squeeze(voxel_features)
+    # |--> voxel_features = [B, C, R**3]
     voxel_features = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
+    # |--> voxel_features = [B, C, N]
     fused_features = voxel_features + self._point_features(features)
+    # |--> fused_features = [B, C, N]
     return fused_features, coords

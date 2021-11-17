@@ -29,6 +29,7 @@ class Voxelization(tf.keras.layers.Layer):
     # info on features, coords
     features, coords = inputs
     B, C, _ = features.shape
+    print(f"features shape={features.shape} | coords shape={coords.shape}")
     R = self._resolution
 
     self._norm_coords = coords - tf.math.reduce_mean(
@@ -52,5 +53,6 @@ class Voxelization(tf.keras.layers.Layer):
 
     vox_features_sqzd, _, _ = avg_voxelize(features, self._vox_coords, R)
     voxelized_features = tf.reshape(vox_features_sqzd, shape=(B, C, R, R, R))
+    print(f"voxelized_features shape={voxelized_features.shape} | _norm_coords shape={self._norm_coords.shape}")
 
     return voxelized_features, self._norm_coords
