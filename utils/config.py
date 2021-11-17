@@ -122,9 +122,13 @@ class Config(AttrDict):
 
   @staticmethod
   def update_from_modules(*modules):
+    print("Start of update_from_modules")
     for module in modules:
+      print("Looking at module", module)
       module = module.replace(".py", "").replace("/", ".")
+      print("module=", module)
       importlib.import_module(module)
+      print("imported module\n")
 
   @staticmethod
   def update_from_arguments(*args):
