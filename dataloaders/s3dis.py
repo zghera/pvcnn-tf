@@ -221,5 +221,5 @@ class DatasetS3DIS(dict):
         holdout_area,
         is_deterministic,
         seed,
-        is_train_split=(split == "train"),
+        is_train_split=(s == "train"),
       )

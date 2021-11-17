@@ -144,7 +144,9 @@ class Train:
     self.eval_iou_acc_metric.reset_states()
 
   @tf.function
-  def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
+  def train_step(
+    self, sample: tf.Tensor, label: tf.Tensor, batches_per_epoch: int
+  ) -> None:
     """One train step."""
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
@@ -159,7 +161,12 @@ class Train:
     self.train_iou_acc_metric.update_state(label, predictions)
 
     def _save():
-      self.progress_manager.save()
+      self.progress_manager.save(
+        checkpoint_number=(
+          batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+        )
+      )
+
     tf.py_function(_save, [], [])
     self.train_iter_in_epoch.assign_add(1)
 
@@ -188,7 +195,7 @@ class Train:
         tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
       ):
         if i >= starting_iter:
-          self.train_step(x, y)
+          self.train_step(x, y, train_dataset_len)
       for i, (x, y) in enumerate(
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
