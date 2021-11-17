@@ -3,7 +3,7 @@
 from tensorflow.keras.optimizers.schedules import CosineDecay
 from tensorflow.keras.regularizers import L2
 
-from modeling import PVCNN
+from modeling.s3dis import PVCNN
 from modeling.layers import (
   PointFeaturesBranch,
   CloudFeaturesBranch,
