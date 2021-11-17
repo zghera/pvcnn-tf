@@ -18,6 +18,8 @@ class Voxelization(tf.keras.layers.Layer):
 
   def build(self, input_shape) -> None:
     features_shape, coords_shape = input_shape
+    print("features_shape=",features_shape)
+    print("coords_shape=",coords_shape)
     self._num_batches, self._num_channels, _ = features_shape
 
     self._norm_coords = self.add_weight(shape=coords_shape, trainable=True)
@@ -27,8 +29,7 @@ class Voxelization(tf.keras.layers.Layer):
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
-    # See modeling/layers/submodules.PointFeaturesBranch.call for more
-    # info on features, coords
+    # See modeling/layers/pvconv `PVConv.call` for more info on features, coords
     features, coords = inputs
     B, C, R = self._num_batches, self._num_channels, self._resolution
 
