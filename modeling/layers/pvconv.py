@@ -39,14 +39,21 @@ class PVConv(tf.keras.layers.Layer):
     )
     # TODO: Verify 'same' padding is consistent with original implementation
     #       in case they use a kernel size other than 3.
-    self._conv = tf.keras.layers.Conv3D(
-      self._out_channels,
-      self._kernel_size,
-      padding="same",
-      kernel_regularizer=self._kernel_regularizer,
-    )
-    self._bn = tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
-    self._lrelu = tf.keras.layers.LeakyReLU(alpha=0.1)
+    self._voxel_layers = []
+    for _ in range(2):
+      self._voxel_layers.append(
+        tf.keras.layers.Conv3D(
+          self._out_channels,
+          self._kernel_size,
+          padding="same",
+          kernel_regularizer=self._kernel_regularizer,
+        )
+      )
+      self._voxel_layers.append(
+        tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
+      )
+      self._voxel_layers.append(tf.keras.layers.LeakyReLU(alpha=0.1))
+
     self._point_features = ConvBn(
       out_channels=self._out_channels,
       kernel_regularizer=self._kernel_regularizer,
@@ -61,11 +68,8 @@ class PVConv(tf.keras.layers.Layer):
     features, coords = inputs
     voxel_features, voxel_coords = self._voxelization((features, coords))
     # |--> voxel_features = [B, C, R, R, R]  |  voxel_coords = [B, 3, N]
-    for _ in range(2):
-      voxel_features = self._conv(voxel_features)
-      print(f"conv3d #{_} out shape={voxel_features.shape}")
-      voxel_features = self._bn(voxel_features)
-      voxel_features = self._lrelu(voxel_features)
+    for layer in self._voxel_layers:
+      voxel_features = layer(voxel_features)
     voxel_features = self._squeeze(voxel_features)
     # |--> voxel_features = [B, C, R**3]
     voxel_features = trilinear_devoxelize(
