@@ -12,24 +12,26 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     self._total_correct_num = self.add_weight(
       name="correct", initializer="zeros"
     )
+    print(f"before reset state: {self._total_correct_num}")
     self.reset_state()
+    print(f"after reset state: {self._total_correct_num}")
 
   def reset_state(self) -> None:
-    self._total_seen_num = 0
-    self._total_correct_num = 0
+    self._total_seen_num = tf.Variable(0)
+    self._total_correct_num = tf.Variable(0)
 
-  def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor) -> None:
+  def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
     y_true_categ = tf.math.argmax(y_pred, axis=1)
     y_pred_categ = tf.math.argmax(y_pred, axis=1)
     tf.debugging.assert_equal(tf.size(y_true_categ), tf.size(y_pred_categ))
 
-    num_elements = tf.size(y_true)
-    with tf.control_dependencies([num_elements]):
-      self._total_seen_num += num_elements
-    self._total_correct_num += tf.reduce_sum(
+    # return (
+    self._total_seen_num.assign_add(tf.size(y_true)),
+    self._total_correct_num.assign_add(tf.reduce_sum(
       tf.cast(y_true_categ == y_pred_categ, tf.int32)
-    )
+    ))
+    # )
 
   def result(self) -> None:
     return self._total_correct_num / self._total_seen_num
