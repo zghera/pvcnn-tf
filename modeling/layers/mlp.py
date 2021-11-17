@@ -71,7 +71,7 @@ class DenseBn(tf.keras.layers.Layer):
     self._kernel_regularizer = kernel_regularizer
 
   def build(self, input_shape) -> None:
-    self._fc = tf.keras.layer.Dense(
+    self._fc = tf.keras.layers.Dense(
       self._out_channels, kernel_regularizer=self._kernel_regularizer
     )
     self._bn = tf.keras.layers.BatchNormalization()
