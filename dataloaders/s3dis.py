@@ -1,13 +1,12 @@
 """PVCNN S3DIS Configuration and Data Pipeline"""
-from typing import Tuple, List
-from pathlib import Path
-from absl import flags
-import tensorflow as tf
-import tensorflow_io as tfio
 import math
 import h5py
+from typing import Tuple, List
+from pathlib import Path
 
-FLAGS = flags.FLAGS
+import tensorflow as tf
+import tensorflow_io as tfio
+
 AUTOTUNE = tf.data.AUTOTUNE
 
 
@@ -27,7 +26,9 @@ def create_s3dis_dataset(
     is_train_split: True if create train dataset. False if create test dataset.
     See S3DIS.__init__ for other arguments.
   """
-  filenames, num_dataset_samples = _get_file_info(is_train_split, data_dir, holdout_area)
+  filenames, num_dataset_samples = _get_file_info(
+    is_train_split, data_dir, holdout_area
+  )
   filenames_ds = tf.data.Dataset.from_tensor_slices(filenames)
 
   dataset_len = math.ceil(num_dataset_samples / batch_size)
@@ -81,7 +82,7 @@ def _get_file_info(
   is_train_split: bool, data_dir: str, holdout_area: int
 ) -> List[str]:
   """Gets the dataset filenames and total number of sampels (scene pointcoulds)
-     for the split indicated by `is_training_split`."""
+  for the split indicated by `is_training_split`."""
   root_path = Path(data_dir)
   assert root_path.is_dir()
   areas = []
@@ -91,8 +92,19 @@ def _get_file_info(
   else:
     areas.append(root_path / f"Area_{holdout_area}")
 
-  filenames: List[str] = []
   num_dataset_samples = 0
+  determine_num_dataset_samples = True
+  if holdout_area == 5:
+    print(
+      "\nNote: It takes a really long time to look through all of the "
+      "files to determine the number of samples. So for holdout area 5, we"
+      "will use a hardcoded value based off the number of samples found"
+      "from counting the data length by looping through each file."
+    )
+    num_dataset_samples = 57216 if is_train_split else 23104
+    determine_num_dataset_samples = False
+
+  filenames: List[str] = []
   for area in areas:
     assert area.is_dir()
     for scene in area.iterdir():
@@ -103,8 +115,9 @@ def _get_file_info(
         filename = str(split.resolve())
         filenames.append(filename)
 
-        h5f = h5py.File(filename, 'r')
-        num_dataset_samples += h5f['data'].shape[0]
+        if determine_num_dataset_samples:
+          h5f = h5py.File(filename, "r")
+          num_dataset_samples += h5f["data"].shape[0]
 
   return filenames, num_dataset_samples
 
@@ -199,7 +212,7 @@ class DatasetS3DIS(dict):
     elif not isinstance(split, (list, tuple)):
       split = [split]
     for s in split:
-      self[s], self[s + '_len'] = create_s3dis_dataset(
+      self[s], self[s + "_len"] = create_s3dis_dataset(
         data_dir,
         shuffle_size,
         batch_size,

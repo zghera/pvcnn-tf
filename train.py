@@ -274,6 +274,8 @@ def main():
     checkpoint,
     directory=configs.train.train_ckpts_path,
     max_to_keep=3,
+    step_counter=cur_iter_in_epoch,
+    checkpoint_interval=5,  # TODO: Tune based length of a train iter.
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
@@ -316,8 +318,8 @@ def main():
 
 
 if __name__ == "__main__":
-  ############### TODO: Remove after finished debugging ###############
+  ################# Debugging #################
   # tf.data.experimental.enable_debug_mode()
   # tf.config.run_functions_eagerly(True)
-  #####################################################################
+  #############################################
   main()
