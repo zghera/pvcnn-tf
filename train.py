@@ -92,10 +92,12 @@ class Train:
 
   def _save_if_best_checkpoint(self) -> None:
     """Save training checkpoint if best model so far."""
-    cur_metric = self.best_ckpt_metric.result()
+    cur_metric = self.best_ckpt_metric.result().numpy()
     if self._best_metric_val is None:
       self._best_metric_val = cur_metric
-    elif tf.math.greater(cur_metric, self._best_metric_val):
+    # TODO: Replace!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # if cur_metric > self._best_metric_val:
+    if True:
       self._best_metric_val = cur_metric
       save_path = self.best_manager.save()
       print(f"NEW BEST checkpoint. Saved to {save_path}")
@@ -195,10 +197,8 @@ class Train:
         tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
       ):
         if i >= starting_iter:
-          print("Lets do a real training step")
           self.train_step(x, y, train_dataset_len)
-        else:
-          print("Skipping ahead until iter", i)
+          break
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -207,6 +207,7 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
+        break
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint()
