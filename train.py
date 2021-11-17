@@ -213,8 +213,7 @@ class Train:
       self._print_training_results(epoch)
       self._save_if_best_checkpoint(epoch)
       self._save_metrics()
-      if epoch != self.epochs - 1:
-        self._reset_metrics()
+      self._reset_metrics()
 
       self.train_epoch.assign_add(1)
 
