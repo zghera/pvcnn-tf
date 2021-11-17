@@ -151,8 +151,6 @@ class Train:
     self, sample: tf.Tensor, label: tf.Tensor, batches_per_epoch: int
   ) -> None:
     """One train step."""
-    print(f"sample = \n {sample}")
-    print(f"label = \n {sample}\n\n")
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
       loss = self.loss_fn(label, predictions)
@@ -199,6 +197,9 @@ class Train:
       for i, (x, y) in enumerate(
         tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
       ):
+        print(f"iter in epoch = {i}")
+        print(f"sample | shape = {x.shape} | val = \n {x}")
+        print(f"label | shape = {y.shape} | val = \n {y}")
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
           break # TODO: REMOVE !!!!!!!!!!!!!!!!!!!!!!!!

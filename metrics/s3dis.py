@@ -24,8 +24,8 @@ class OverallAccuracy(tf.keras.metrics.Metric):
 
   def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
-    print(f"y_pred = \n {y_pred}")
-    print(f"y_true = \n {y_true}\n\n")
+    # print(f"y_pred = \n {y_pred}")
+    # print(f"y_true = \n {y_true}\n\n")
     y_true_categ = tf.math.argmax(y_pred, axis=1)
     y_pred_categ = tf.math.argmax(y_pred, axis=1)
     tf.debugging.assert_equal(tf.size(y_true_categ), tf.size(y_pred_categ))
