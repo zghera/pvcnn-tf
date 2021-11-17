@@ -139,12 +139,12 @@ class Train:
     )
 
   def _reset_metrics(self):
-    self.train_loss_metric.reset_states()
-    self.train_overall_acc_metric.reset_states()
-    self.train_iou_acc_metric.reset_states()
-    self.eval_loss_metric.reset_states()
-    self.eval_overall_acc_metric.reset_states()
-    self.eval_iou_acc_metric.reset_states()
+    self.train_loss_metric.reset_state()
+    self.train_overall_acc_metric.reset_state()
+    self.train_iou_acc_metric.reset_state()
+    self.eval_loss_metric.reset_state()
+    self.eval_overall_acc_metric.reset_state()
+    self.eval_iou_acc_metric.reset_state()
 
   @tf.function
   def train_step(

@@ -22,6 +22,7 @@ class OverallAccuracy(tf.keras.metrics.Metric):
     backend.batch_set_value([
       (v, np.zeros(v.shape.as_list())) for v in self.variables
     ])
+    print(f"Reset: total_seen={self._total_seen_num} | total_correct={self._total_correct_num}")
 
   def update_state(self, y_pred: tf.Tensor, y_true: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
