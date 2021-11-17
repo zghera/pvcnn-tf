@@ -26,7 +26,7 @@ class OverallAccuracy(tf.keras.metrics.Metric):
 
     num_elements = tf.size(y_true)
     with tf.control_dependencies([num_elements]):
-      self._total_seen_num.assign_add(num_elements)
+      self._total_seen_num += num_elements
     self._total_correct_num += tf.reduce_sum(
       tf.cast(y_true_categ == y_pred_categ, tf.int32)
     )
