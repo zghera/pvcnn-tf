@@ -73,7 +73,7 @@ class PVConv(tf.keras.layers.Layer):
     # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)
     # |--> voxel_features = [B, OC, R**3]
-    voxel_features = trilinear_devoxelize(
+    voxel_features, _, _ = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
     # |--> voxel_features = [B, OC, N]
