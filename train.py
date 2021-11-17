@@ -32,7 +32,7 @@ def get_configs():
   configs.update_from_arguments(*opts)
   configs.eval.is_evaluating = args.eval
   configs.train.restart_training = args.restart
-  assert configs.train.restart_training != configs.eval.is_evaluating
+  assert not configs.train.restart_training or not configs.eval.is_evaluating
 
   save_path = configs.train.save_path
   configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")

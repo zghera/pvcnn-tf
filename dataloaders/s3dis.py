@@ -95,12 +95,13 @@ def _get_file_info(
   num_dataset_samples = 0
   determine_num_dataset_samples = True
   if holdout_area == 5:
-    print(
-      "\nNote: It takes a really long time to look through all of the "
-      "files to determine the number of samples. So for holdout area 5, we"
-      "will use a hardcoded value based off the number of samples found"
-      "from counting the data length by looping through each file."
-    )
+    if is_train_split:
+      print(
+        "\nNote: It takes a really long time to look through all of the "
+        "files to determine the number of samples. So for holdout area 5, we"
+        "will use a hardcoded value based off the number of samples found"
+        "from counting the data length by looping through each file.\n"
+      )
     num_dataset_samples = 57216 if is_train_split else 23104
     determine_num_dataset_samples = False
 
