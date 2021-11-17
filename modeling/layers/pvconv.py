@@ -60,7 +60,9 @@ class PVConv(tf.keras.layers.Layer):
     )
 
     features_shape, _ = input_shape
+    print(f"features shape for sqeeze layer = {features_shape}")
     self._squeeze = tf.keras.layers.Reshape((features_shape[1], -1))
+    print(f"sqeeze layer = {self._squeeze}")
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
@@ -70,6 +72,7 @@ class PVConv(tf.keras.layers.Layer):
     # |--> voxel_features = [B, C, R, R, R]  |  voxel_coords = [B, 3, N]
     for layer in self._voxel_layers:
       voxel_features = layer(voxel_features)
+    print(f"sqeeze layer input tensor shape = {voxel_features.shape}")
     voxel_features = self._squeeze(voxel_features)
     # |--> voxel_features = [B, C, R**3]
     voxel_features = trilinear_devoxelize(
