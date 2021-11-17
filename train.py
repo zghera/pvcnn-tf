@@ -158,7 +158,9 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
-    tf.py_function(self.progress_manager.save, [], [tf.string])
+    def _save():
+      self.progress_manager.save()
+    tf.py_function(_save, [], [])
     self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
