@@ -8,9 +8,11 @@ class OverallAccuracy(tf.keras.metrics.Metric):
   def __init__(self, split: str, **kwargs) -> None:
     assert split in ["train", "test"]
     super().__init__(name=f"acc/overall_{split}", **kwargs)
-    self._total_seen_num = self.add_weight(name="seen", initializer="zeros")
+    self._total_seen_num = self.add_weight(
+      name="seen", initializer="zeros", dtype=tf.float32
+    )
     self._total_correct_num = self.add_weight(
-      name="correct", initializer="zeros"
+      name="correct", initializer="zeros", dtype=tf.float32
     )
     self.reset_state()
 
