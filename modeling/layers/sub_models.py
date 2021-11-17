@@ -144,12 +144,11 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
 
   def call(self, inputs, training=None) -> tf.Tensor:
     # Get maximum channel value for each channel over all of the points
-    inputs = tf.math.reduce_max(inputs, axis=-1)
-    x = inputs
+    x = tf.math.reduce_max(inputs, axis=-1)
     for layer in self._layers:
       x = layer(x, training=training)
     # Duplicate output tensor for N size num_points dimension
-    return tf.repeat(tf.expand_dims(x, axis=-1), inputs.size(-1), axis=-1)
+    return tf.repeat(tf.expand_dims(x, axis=-1), inputs.shape[-1], axis=-1)
 
 
 class ClassificationHead(tf.keras.layers.Layer):
