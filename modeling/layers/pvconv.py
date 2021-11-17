@@ -59,26 +59,24 @@ class PVConv(tf.keras.layers.Layer):
       kernel_regularizer=self._kernel_regularizer,
     )
 
-    features_shape, _ = input_shape
-    print(f"features shape for sqeeze layer = {features_shape}")
-    self._squeeze = tf.keras.layers.Reshape((features_shape[1], -1))
-    print(f"sqeeze layer = {self._squeeze}")
+    self._squeeze = tf.keras.layers.Reshape((self._out_channels, -1))
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
-    # features = [B, C, N]  |  coords = [B, 3, N]
+    # IC = input channels | OC = output channels (self._out_channels)
+    # features = [B, IC, N]  |  coords = [B, 3, N]
     features, coords = inputs
     voxel_features, voxel_coords = self._voxelization((features, coords))
-    # |--> voxel_features = [B, C, R, R, R]  |  voxel_coords = [B, 3, N]
+    # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
     for layer in self._voxel_layers:
       voxel_features = layer(voxel_features)
-    print(f"sqeeze layer input tensor shape = {voxel_features.shape}")
+    # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)
-    # |--> voxel_features = [B, C, R**3]
+    # |--> voxel_features = [B, OC, R**3]
     voxel_features = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
-    # |--> voxel_features = [B, C, N]
+    # |--> voxel_features = [B, OC, N]
     fused_features = voxel_features + self._point_features(features)
-    # |--> fused_features = [B, C, N]
+    # |--> fused_features = [B, OC, N]
     return fused_features, coords
