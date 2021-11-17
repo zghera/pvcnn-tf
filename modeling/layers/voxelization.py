@@ -17,7 +17,9 @@ class Voxelization(tf.keras.layers.Layer):
     self._eps = eps
 
   def build(self, input_shape) -> None:
-    _, coords_shape = input_shape
+    features_shape, coords_shape = input_shape
+    self._num_batches, self._num_channels, _ = features_shape
+
     self._norm_coords = self.add_weight(shape=coords_shape, trainable=True)
     self._vox_coords = self.add_weight(
       shape=coords_shape, dtype=tf.int32, trainable=True
@@ -28,8 +30,7 @@ class Voxelization(tf.keras.layers.Layer):
     # See modeling/layers/submodules.PointFeaturesBranch.call for more
     # info on features, coords
     features, coords = inputs
-    B, C, _ = features.shape
-    R = self._resolution
+    B, C, R = self._num_batches, self._num_channels, self._resolution
 
     self._norm_coords = coords - tf.math.reduce_mean(
       coords, axis=2, keepdims=True
