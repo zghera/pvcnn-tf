@@ -35,7 +35,8 @@ def get_save_path(*configs, prefix: str = "runs") -> str:
 
 
 def config_gpu():
-  os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
+  # TODO: The following may be useful but caused colab to crash initially
+  # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
   # os.environ["TF_CPP_VMODULE"]="gpu_process_state=10,gpu_cudamallocasync_allocator=10"
   gpu_devices = tf.config.list_physical_devices("GPU")
   print(f"Num GPUs Available: {len(gpu_devices)}\n")
