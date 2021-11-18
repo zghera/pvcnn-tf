@@ -13,7 +13,6 @@ from utils.config import Config, configs
 
 # sub-models
 configs.submodel = Config()
-configs.submodel.width_multiplier = 1
 configs.submodel.kernel_reg = L2(1e-5)
 
 configs.point_branch = Config(PointFeaturesBranch)
@@ -23,17 +22,14 @@ configs.point_branch.blocks = (
   (128, 1, 16),
   (1024, 1, None),
 )
-configs.point_branch.width_multiplier = configs.submodel.width_multiplier
 configs.point_branch.voxel_resolution_multiplier = 1
 configs.point_branch.kernel_regularizer = configs.submodel.kernel_reg
 
 configs.cloud_branch = Config(CloudFeaturesBranch)
-configs.cloud_branch.width_multiplier = configs.submodel.width_multiplier
 configs.cloud_branch.kernel_regularizer = configs.submodel.kernel_reg
 
 configs.classification_head = Config(ClassificationHead)
 configs.classification_head.num_classes = configs.data.num_classes
-configs.classification_head.width_multiplier = configs.submodel.width_multiplier
 configs.classification_head.kernel_regularizer = configs.submodel.kernel_reg
 
 # model
@@ -44,6 +40,10 @@ configs.model.classification_head = configs.classification_head()
 
 # dataset
 configs.dataset.num_points = 4096
+
+# metrics
+configs.metrics.eval.iou.expected_shape = [None, 13, configs.dataset.num_points]
+configs.metrics.train.iou.expected_shape = [None, 13, configs.dataset.num_points]  # fmt: skip
 
 # train: scheduler
 configs.train.optimizer.learning_rate = Config(CosineDecay)

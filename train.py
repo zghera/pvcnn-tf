@@ -236,9 +236,7 @@ class Train:
 
 
 def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
-  _, (ax1, ax2) = plt.subplots(
-    nrows=2, ncols=1, sharex=True, figsize=(10, 10)
-  )
+  _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
 
   ax1.plot(train_metrics["train_loss"])
   ax1.plot(train_metrics["val_loss"])

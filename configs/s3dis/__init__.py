@@ -18,7 +18,7 @@ configs.eval.batch_size = 10
 configs.train = Config()
 configs.train.restart_training = False
 configs.train.num_epochs = 50
-configs.train.batch_size = Original=32
+configs.train.batch_size = 32
 configs.train.loss_fn = Config(tf.keras.losses.CategoricalCrossentropy)
 configs.train.optimizer = Config(tf.keras.optimizers.Adam)
 
