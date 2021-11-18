@@ -52,10 +52,6 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
 
   def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
-    print(f"y_true | shape = {y_true.shape} | val = \n {y_true} \n\n")
-    print(f"y_pred | shape = {y_pred.shape} | val = \n {y_pred} \n\n")
     y_true_categ = tf.math.argmax(y_true, axis=1)
     y_pred_categ = tf.math.argmax(y_pred, axis=1)
-    # print(f"y_true_categ | shape = {y_true_categ.shape} | val = \n {y_true_categ} \n\n")
-    # print(f"y_pred_categ | shape = {y_pred_categ.shape} | val = \n {y_pred_categ} \n\n")
     super().update_state(y_true_categ, y_pred_categ)

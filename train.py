@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from utils.common import get_save_path
+from utils.common import get_save_path, config_gpu
 
 MetricsDict = Dict[str, tf.keras.metrics.Metric]
 
@@ -163,6 +163,7 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
+    # TODO: Figure out why this don't work, something with `None`s sneaking in
     # def _save():
     #   ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
     #   self.progress_manager.save(checkpoint_number=ckpt_num)
@@ -271,6 +272,7 @@ def main():
   #################
   # Use channels first format for ease of comparing shapes with original impl.
   tf.keras.backend.set_image_data_format("channels_first")
+  config_gpu()
   configs = get_configs()
   tf.random.set_seed(configs.seed)
   np.random.seed(configs.seed)

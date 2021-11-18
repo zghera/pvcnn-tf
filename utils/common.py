@@ -1,8 +1,8 @@
 """Other common utilities for filepaths and device info."""
-from typing import List
 import os
+import tensorflow as tf
 
-__all__ = ["get_save_path", "set_cuda_visible_devices"]
+__all__ = ["get_save_path", "config_gpu"]
 
 
 def get_save_path(*configs, prefix: str = "runs") -> str:
@@ -32,3 +32,12 @@ def get_save_path(*configs, prefix: str = "runs") -> str:
     return p
 
   return os.path.join(prefix, get_str(memo, ""))
+
+
+def config_gpu():
+  os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
+  # os.environ["TF_CPP_VMODULE"]="gpu_process_state=10,gpu_cudamallocasync_allocator=10"
+  gpu_devices = tf.config.list_physical_devices("GPU")
+  print(f"Num GPUs Available: {len(gpu_devices)}\n")
+  for device in gpu_devices:
+    tf.config.experimental.set_memory_growth(device, True)
