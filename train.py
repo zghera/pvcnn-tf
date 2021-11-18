@@ -163,6 +163,8 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
+    print(f"save dir = {self.progress_manager.directory}")
+    print(f"checkpoint_num = {batches_per_epoch * self.train_epoch + self.train_iter_in_epoch}")
     def _save():
       self.progress_manager.save(
         checkpoint_number=(
@@ -321,9 +323,7 @@ def main():
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
-    directory=configs.eval.best_ckpt_path
-    if configs.eval.is_evaluating
-    else configs.train.best_ckpt_path,
+    directory=configs.train.best_ckpt_path,
     max_to_keep=1,
   )
   if configs.eval.is_evaluating:
