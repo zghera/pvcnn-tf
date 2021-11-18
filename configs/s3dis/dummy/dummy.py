@@ -22,3 +22,7 @@ outputs = tf.keras.layers.ZeroPadding1D(padding=2)(inputs)
 configs.model = Config(tf.keras.Model)
 configs.model.inputs = inputs
 configs.model.outputs = outputs
+
+# metrics
+configs.metrics.eval.iou.expected_shape = [None, 13, configs.dataset.num_points]
+configs.metrics.train.iou.expected_shape = [None, 13, configs.dataset.num_points]  # fmt: skip

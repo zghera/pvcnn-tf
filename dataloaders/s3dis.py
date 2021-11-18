@@ -18,6 +18,7 @@ def create_s3dis_dataset(
   use_normalized_coords: bool,
   holdout_area: int,
   is_deterministic: bool,
+  num_classes: int,
   seed: int,
   is_train_split: bool,
 ) -> tf.data.Dataset:
@@ -49,17 +50,23 @@ def create_s3dis_dataset(
     for h5_dataset, spec in h5_dataset_specs.items()
   )
   dataset = tf.data.Dataset.zip(h5_datasets)
+  # fmt: off
   dataset = dataset.map(
-    lambda label, data_num_points, data, use_normalized_coords=use_normalized_coords, desired_num_points=num_points: _random_sample_data(
+    lambda label, data_num_points, data,
+           use_normalized_coords=use_normalized_coords,
+           desired_num_points=num_points,
+           num_classes=num_classes: _random_sample_data(
       data,
       label,
       data_num_points,
       desired_num_points,
       use_normalized_coords,
+      num_classes,
     ),
     num_parallel_calls=AUTOTUNE,
     deterministic=is_deterministic,
   )
+  # fmt: on
 
   if is_train_split:
     dataset = dataset.shuffle(
@@ -127,6 +134,7 @@ def _random_sample_data(
   data_num_points: tf.Tensor,
   desired_num_points: int,
   use_normalized_coords: bool,
+  num_classes: int,
 ) -> Tuple[tf.Tensor, tf.Tensor]:
   """Map function for dataset to get randomly sampled (data,label) examples."""
   for tensor, expected_rank in [[data, 2], [label, 1], [data_num_points, 0]]:
@@ -152,20 +160,27 @@ def _random_sample_data(
     _, indices = tf.nn.top_k(logits + z, k=desired_num_points)
     return indices
 
+  # Randomly sample from pointcloud
   indices = tf.cond(
     data_num_points < desired_num_points,
     true_fn=sample_with_replacement,
     false_fn=sample_without_replacement,
   )
-
-  data = tf.transpose(tf.gather(data, indices=indices))
+  data = tf.gather(data, indices=indices)
   label = tf.gather(label, indices=indices)
-  label = tf.one_hot(label, depth=13, axis=0)
+
+  # Filter out any points with class labels > num_classes
+  indices = tf.squeeze(tf.where(tf.less_equal(label, num_classes - 1)), 1)
+  data = tf.gather(data, indices=indices)
+  label = tf.cast(tf.gather(label, indices=indices), dtype=tf.int32)
+
+  data = tf.transpose(data)
+  # label has shape [13, num_points] where axis 0 is the one-hot encoding
+  #   of the categorical labels 0 - 12.
+  label = tf.one_hot(label, depth=num_classes, axis=0)
   if use_normalized_coords:
     # data has shape [9, num_points] where axis 0 is
     #   [x_in_block, y_in_block, z_in_block, r, g, b, x / x_room, y / y_room, z / z_room]
-    # label has shape [13, num_points] where axis 0 is the one-hot encoding
-    #   of the categorical label 0 - 12.
     return data, label
   # data has shape [6, num_points] where axis 0 is
   #   [x_in_block, y_in_block, z_in_block, r, g, b]
@@ -187,6 +202,7 @@ class DatasetS3DIS(dict):
     use_normalized_coords: bool,
     holdout_area: int,
     is_deterministic: bool,
+    num_classes: int,
     seed: int,
     split=None,
   ):
@@ -200,7 +216,8 @@ class DatasetS3DIS(dict):
       use_normalized_coords: Whether include the normalized coords in features.
       holdout_area: Area to hold out for testing.
       is_deterministic: When False, the dataset can yield elements out of order.
-      is_deterministic: Random seed.
+      seed: Random seed.
+      num_classes: Number of classes in the labels.
       split: 'train', 'test', or None. None will create both the train and
              test splits.
     """
@@ -218,6 +235,7 @@ class DatasetS3DIS(dict):
         use_normalized_coords,
         holdout_area,
         is_deterministic,
+        num_classes,
         seed,
         is_train_split=(s == "train"),
       )

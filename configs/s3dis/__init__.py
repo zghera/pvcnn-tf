@@ -29,6 +29,7 @@ configs.dataset.shuffle_size = 1000
 configs.dataset.batch_size = None  # Set in train.py
 configs.dataset.use_normalized_coords = True
 configs.dataset.is_deterministic = configs.deterministic
+configs.dataset.num_classes = configs.data.num_classes
 configs.dataset.seed = configs.seed
 
 # metrics

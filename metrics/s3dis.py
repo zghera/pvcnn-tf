@@ -55,27 +55,12 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
     self._expected_shape = expected_shape
     super().__init__(num_classes, name=f"acc/iou_{split}", **kwargs)
 
-  # Getting this error:
-  # Invalid argument:  assertion failed: [`labels` out of bound] [Condition x < y did not hold element-wise:]
-  #  [x (confusion_matrix/control_dependency:0) = ] [0 0 0...] [y (confusion_matrix/Cast_2:0) = ] [13]
-  #  [[{{node confusion_matrix/assert_less/Assert/AssertGuard/else/_19/confusion_matrix/assert_less/Assert/AssertGuard/Assert}}]]
-  #  [[confusion_matrix/assert_less_1/Assert/AssertGuard/pivot_f/_31/_69]]
   def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
     # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
-
-    # Potential fix: Ensure there size of dim 1 is actually 13
     y_true = tf.ensure_shape(y_true, self._expected_shape)
     y_pred = tf.ensure_shape(y_pred, self._expected_shape)
 
     y_true_categ = tf.math.argmax(y_true, axis=1)
     y_pred_categ = tf.math.argmax(y_pred, axis=1)
-
-    # Potential fix: Clip values between 0 and num_classes - 1
-    y_true_categ = tf.clip_by_value(
-      y_true_categ, clip_value_min=0, clip_value_max=self._num_classes - 1
-    )
-    y_pred_categ = tf.clip_by_value(
-      y_pred_categ, clip_value_min=0, clip_value_max=self._num_classes - 1
-    )
 
     super().update_state(y_true_categ, y_pred_categ)
