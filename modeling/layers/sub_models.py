@@ -82,7 +82,7 @@ def create_mlp_components(
           filters=out_channels[-1],
           kernel_size=1,
           kernel_regularizer=kernel_regularizer,
-          data_format=None, # Ensure Conv1D uses keras.backend.image_data_format
+          data_format=None,  # Ensure Conv1D uses keras.backend.image_data_format
         )
       )
     else:

@@ -1,5 +1,6 @@
 """"PVCNN Model Definition."""
 
+from typing import Tuple
 import tensorflow as tf
 from modeling.layers import (
   PointFeaturesBranch,
@@ -13,16 +14,27 @@ class PVCNN(tf.keras.Model):
 
   def __init__(
     self,
-    point_voxel_branch: PointFeaturesBranch,
-    cloud_features_branch: CloudFeaturesBranch,
-    classification_head: ClassificationHead,
+    point_voxel_blocks: Tuple,
+    voxel_resolution_multiplier: int,
+    kernel_regularizer: tf.keras.regularizers.Regularizer,
+    num_classes: int,
+    width_multiplier: int,
     **kwargs,
   ) -> None:
     super().__init__(**kwargs)
 
-    self._pvconv_branch = point_voxel_branch
-    self._cloud_features_branch = cloud_features_branch
-    self._classification_head = classification_head
+    self._pvconv_branch = PointFeaturesBranch(
+      point_voxel_blocks,
+      width_multiplier,
+      voxel_resolution_multiplier,
+      kernel_regularizer,
+    )
+    self._cloud_features_branch = CloudFeaturesBranch(
+      width_multiplier, kernel_regularizer
+    )
+    self._classification_head = ClassificationHead(
+      num_classes, width_multiplier, kernel_regularizer
+    )
 
   def call(self, inputs, training=None):
     # inputs: Point cloud features with shape [B, C, N]. B is batch size,

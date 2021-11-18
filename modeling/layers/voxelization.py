@@ -21,9 +21,10 @@ class Voxelization(tf.keras.layers.Layer):
     self._num_batches, self._num_channels, _ = features_shape
 
     self._norm_coords = self.add_weight(
-     name='norm_coords', shape=coords_shape, trainable=True)
+      name="norm_coords", shape=coords_shape, trainable=True
+    )
     self._vox_coords = self.add_weight(
-     name='vox_coords', shape=coords_shape, dtype=tf.int32, trainable=True
+      name="vox_coords", shape=coords_shape, dtype=tf.int32, trainable=True
     )
     super().build(input_shape)
 
