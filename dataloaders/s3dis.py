@@ -65,15 +65,11 @@ def create_s3dis_dataset(
     dataset = dataset.shuffle(
       shuffle_size, seed=seed, reshuffle_each_iteration=True
     )
-  dataset = (
-    dataset.batch(
-      batch_size,
-      num_parallel_calls=AUTOTUNE,
-      deterministic=is_deterministic,
-    )
-    .cache()
-    .prefetch(buffer_size=AUTOTUNE)
-  )
+  dataset = dataset.batch(
+    batch_size,
+    num_parallel_calls=AUTOTUNE,
+    deterministic=is_deterministic,
+  ).prefetch(buffer_size=AUTOTUNE)
 
   return dataset, dataset_len
 
