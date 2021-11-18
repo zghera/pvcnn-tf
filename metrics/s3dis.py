@@ -60,7 +60,7 @@ class IouAccuracy(tf.keras.metrics.MeanIoU):
     y_true = tf.ensure_shape(y_true, self._expected_shape)
     y_pred = tf.ensure_shape(y_pred, self._expected_shape)
 
-    y_true_categ = tf.math.argmax(y_true, axis=1)
-    y_pred_categ = tf.math.argmax(y_pred, axis=1)
+    y_true_categ = tf.math.argmax(y_true, axis=1, output_type=tf.int32)
+    y_pred_categ = tf.math.argmax(y_pred, axis=1, output_type=tf.int32)
 
     super().update_state(y_true_categ, y_pred_categ)

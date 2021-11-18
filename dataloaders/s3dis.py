@@ -169,8 +169,16 @@ def _random_sample_data(
   data = tf.gather(data, indices=indices)
   label = tf.gather(label, indices=indices)
 
-  # Filter out any points with class labels > num_classes
-  indices = tf.squeeze(tf.where(tf.less_equal(label, num_classes - 1)), 1)
+  # Filter out any points with class labels > num_classes or < 0
+  indices = tf.squeeze(
+    tf.where(
+      tf.math.logical_and(
+        tf.less_equal(label, num_classes - 1),
+        tf.greater_equal(label, 0),
+      )
+    ),
+    1,
+  )
   data = tf.gather(data, indices=indices)
   label = tf.cast(tf.gather(label, indices=indices), dtype=tf.int32)
 
