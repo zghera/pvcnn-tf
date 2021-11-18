@@ -163,14 +163,10 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
-    print(f"save dir = {self.progress_manager.directory}")
-    print(f"checkpoint_num = {batches_per_epoch * self.train_epoch + self.train_iter_in_epoch}")
     def _save():
-      self.progress_manager.save(
-        checkpoint_number=(
-          batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
-        )
-      )
+      checkpoint_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+      print(f"checkpoint_num = {checkpoint_num}")
+      print(self.progress_manager.save(checkpoint_number=checkpoint_num))
 
     tf.py_function(_save, [], [])
     self.train_iter_in_epoch.assign_add(1)
