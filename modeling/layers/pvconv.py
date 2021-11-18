@@ -76,7 +76,6 @@ class PVConv(tf.keras.layers.Layer):
     voxel_features, _, _ = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
-    print("trilinear_devox out features shape =", voxel_features.shape)
     # |--> voxel_features = [B, OC, N]
     fused_features = voxel_features + self._point_features(features)
     # |--> fused_features = [B, OC, N]

@@ -18,8 +18,6 @@ class Voxelization(tf.keras.layers.Layer):
 
   def build(self, input_shape) -> None:
     features_shape, coords_shape = input_shape
-    print("features_shape=",features_shape)
-    print("coords_shape=",coords_shape)
     self._num_batches, self._num_channels, _ = features_shape
 
     self._norm_coords = self.add_weight(shape=coords_shape, trainable=True)
@@ -53,7 +51,6 @@ class Voxelization(tf.keras.layers.Layer):
     self._vox_coords = tf.cast(tf.round(self._norm_coords), dtype=tf.int32)
 
     vox_features_sqzd, _, _ = avg_voxelize(features, self._vox_coords, R)
-    print("vox_features_sqzd shape =", vox_features_sqzd.shape)
     voxelized_features = tf.reshape(vox_features_sqzd, shape=(B, C, R, R, R))
 
     return voxelized_features, self._norm_coords
