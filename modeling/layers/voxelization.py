@@ -18,7 +18,7 @@ class Voxelization(tf.keras.layers.Layer):
 
   def build(self, input_shape) -> None:
     features_shape, coords_shape = input_shape
-    self._num_batches, self._num_channels, _ = features_shape
+    _, self._num_channels, _ = features_shape
 
     self._norm_coords = self.add_weight(
       name="norm_coords", shape=coords_shape, trainable=True
@@ -31,7 +31,7 @@ class Voxelization(tf.keras.layers.Layer):
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
     # See modeling/layers/pvconv `PVConv.call` for more info on features, coords
     features, coords = inputs
-    B, C, R = self._num_batches, self._num_channels, self._resolution
+    C, R = self._num_channels, self._resolution
 
     self._norm_coords = coords - tf.math.reduce_mean(
       coords, axis=2, keepdims=True
@@ -53,6 +53,6 @@ class Voxelization(tf.keras.layers.Layer):
     self._vox_coords = tf.cast(tf.round(self._norm_coords), dtype=tf.int32)
 
     vox_features_sqzd, _, _ = avg_voxelize(features, self._vox_coords, R)
-    voxelized_features = tf.reshape(vox_features_sqzd, shape=(B, C, R, R, R))
+    voxelized_features = tf.reshape(vox_features_sqzd, shape=(-1, C, R, R, R))
 
     return voxelized_features, self._norm_coords
