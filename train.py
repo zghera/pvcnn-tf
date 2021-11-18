@@ -313,7 +313,7 @@ def main():
     directory=configs.train.train_ckpts_path,
     max_to_keep=3,
     step_counter=cur_iter_in_epoch,
-    checkpoint_interval=5,  # TODO: Tune based length of a train iter.
+    checkpoint_interval=100,
   )
   best_manager = tf.train.CheckpointManager(
     checkpoint,
