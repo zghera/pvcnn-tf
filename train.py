@@ -163,11 +163,11 @@ class Train:
     self.train_overall_acc_metric.update_state(label, predictions)
     self.train_iou_acc_metric.update_state(label, predictions)
 
-    def _save():
-      checkpoint_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
-      print(self.progress_manager.save())
+    # def _save():
+    #   ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+    #   self.progress_manager.save(checkpoint_number=ckpt_num)
 
-    tf.py_function(_save, [], [])
+    # tf.py_function(_save, [], [])
     self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
