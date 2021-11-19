@@ -21,10 +21,6 @@ configs.model.kernel_regularizer = L2(1e-5)
 # dataset
 configs.dataset.num_points = 4096
 
-# metrics
-configs.metrics.eval.iou.expected_shape = [None, 13, configs.dataset.num_points]
-configs.metrics.train.iou.expected_shape = [None, 13, configs.dataset.num_points]  # fmt: skip
-
 # train: scheduler
 configs.train.optimizer.learning_rate = Config(CosineDecay)
 configs.train.optimizer.learning_rate.initial_learning_rate = 1e-3
