@@ -20,6 +20,7 @@ configs.train.restart_training = False
 configs.train.num_epochs = 50
 configs.train.batch_size = 32
 configs.train.loss_fn = Config(tf.keras.losses.CategoricalCrossentropy)
+configs.train.loss_fn.from_logits = True
 configs.train.loss_fn.axis = 1
 configs.train.loss_fn.reduction = tf.keras.losses.Reduction.SUM
 configs.train.optimizer = Config(tf.keras.optimizers.Adam)
@@ -48,6 +49,3 @@ configs.metrics.train.overall.split = "train"
 configs.metrics.train.iou = Config(IouAccuracy)
 configs.metrics.train.iou.split = "train"
 configs.metrics.train.iou.num_classes = configs.data.num_classes
-
-# Training metric used to determine / save best checkpoint
-configs.train.best_ckpt_metric = configs.metrics.eval.iou

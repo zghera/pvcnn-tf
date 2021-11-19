@@ -78,7 +78,6 @@ class Train:
     train_iou_metric: tf.keras.metrics.Metric,
     eval_overall_metric: tf.keras.metrics.Metric,
     eval_iou_metric: tf.keras.metrics.Metric,
-    best_ckpt_metric: tf.keras.metrics.Metric,
     saved_metrics: MetricsDict,
   ) -> None:
     self.epochs = epochs
@@ -95,18 +94,17 @@ class Train:
     self.eval_overall_acc_metric = eval_overall_metric
     self.eval_iou_acc_metric = eval_iou_metric
     self.eval_loss_metric = tf.keras.metrics.Mean(name="eval_loss")
-    self.best_ckpt_metric = best_ckpt_metric
-    self._best_metric_val = None
+    self._smallest_val_loss = None
     self.saved_metrics = saved_metrics
     self.autotune = tf.data.experimental.AUTOTUNE
 
   def _save_if_best_checkpoint(self, epoch: int) -> None:
     """Save training checkpoint if best model so far."""
-    cur_metric = self.best_ckpt_metric.result().numpy()
-    if self._best_metric_val is None:
-      self._best_metric_val = cur_metric
-    if cur_metric > self._best_metric_val:
-      self._best_metric_val = cur_metric
+    cur_val_loss = self.eval_loss_metric.result().numpy()
+    if self._smallest_val_loss is None:
+      self._smallest_val_loss = cur_val_loss
+    if cur_val_loss < self._smallest_val_loss:
+      self._smallest_val_loss = cur_val_loss
       save_path = self.best_manager.save(checkpoint_number=epoch)
       print(f"NEW BEST checkpoint at epoch {epoch}! Saved to {save_path}\n\n")
 
@@ -167,6 +165,12 @@ class Train:
     self.optimizer.apply_gradients(
       zip(gradients, self.model.trainable_variables)
     )
+    ######################### Debugging #########################
+    tf.print(f"label = {label} \n\n prediction = {predictions}")
+    tf.print(f"\nLoss = {loss}")
+    # tf.print(f"\nGradients = {gradients}")
+    #############################################################
+    # asdfjkhasfk
 
     self.train_loss_metric.update_state(loss)
     self.train_overall_acc_metric.update_state(label, predictions)
@@ -205,6 +209,9 @@ class Train:
       ):
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
+        ######################### Debugging #########################
+        if i > 3: break
+        #############################################################
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -213,6 +220,9 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
+        ######################### Debugging #########################
+        if i > 3: break
+        #############################################################
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint(epoch)
@@ -354,7 +364,6 @@ def main():
     train_iou_metric=configs.metrics.train.iou(),
     eval_overall_metric=configs.metrics.eval.overall(),
     eval_iou_metric=configs.metrics.eval.iou(),
-    best_ckpt_metric=configs.train.best_ckpt_metric(),
     saved_metrics=saved_metrics,
   )
   if configs.eval.is_evaluating:
@@ -369,6 +378,6 @@ def main():
 if __name__ == "__main__":
   ################# Debugging #################
   # tf.data.experimental.enable_debug_mode()
-  # tf.config.run_functions_eagerly(True)
+  tf.config.run_functions_eagerly(True)
   #############################################
   main()

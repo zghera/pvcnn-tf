@@ -46,6 +46,11 @@ class PVCNN(tf.keras.Model):
     cloud_features = self._cloud_features_branch(
       point_features_list[-1], training=training
     )
+    ######################### Debugging #########################
+    for i, point_features in enumerate(point_features_list):
+      print(f"point feature {i} shape = {point_features.shape}")
+    print(f"cloud feature shape = {cloud_features.shape}")
+    #############################################################
     # cloud_features has shape [B, 128, N].
     comb_features = tf.concat([*point_features_list, cloud_features], axis=1)
     # comb_features has shape [B, (1024 * len(point_features_list)) + 128, N].
