@@ -20,6 +20,8 @@ configs.train.restart_training = False
 configs.train.num_epochs = 50
 configs.train.batch_size = 32
 configs.train.loss_fn = Config(tf.keras.losses.CategoricalCrossentropy)
+configs.train.loss_fn.axis = 1
+configs.train.loss_fn.reduction = tf.keras.losses.Reduction.SUM
 configs.train.optimizer = Config(tf.keras.optimizers.Adam)
 
 # dataset

@@ -123,7 +123,7 @@ class Train:
       f" - Overall Accuracy: {self.train_overall_acc_metric.result().numpy() * 100}\n" # pylint: disable=line-too-long
       f" - IOU Accuracy: {self.train_iou_acc_metric.result().numpy() * 100}\n"
       f"Validation:\n"
-      f" - Loss: {self.eval_loss_metric.result()}\n"
+      f" - Loss: {self.eval_loss_metric.result().numpy()}\n"
       f" - Overall Accuracy: {self.eval_overall_acc_metric.result().numpy() * 100}\n"  # pylint: disable=line-too-long
       f" - IOU Accuracy: {self.eval_iou_acc_metric.result().numpy() * 100}\n\n"
     )
