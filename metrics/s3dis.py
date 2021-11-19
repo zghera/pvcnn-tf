@@ -1,5 +1,4 @@
 """Evaluation metrics for PVCNN S3DIS dataset."""
-from typing import List
 import tensorflow as tf
 import numpy as np
 from keras import backend

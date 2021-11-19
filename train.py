@@ -33,7 +33,9 @@ def get_configs():
   configs.update_from_arguments(*opts)
   configs.eval.is_evaluating = args.eval
   configs.train.restart_training = args.restart
-  assert not configs.train.restart_training or not configs.eval.is_evaluating
+  assert (
+    not configs.train.restart_training or not configs.eval.is_evaluating
+  ), "Cannot set '--restart' and '--eval' flag at the same time."
 
   save_path = configs.train.save_path
   configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")
@@ -46,6 +48,13 @@ def get_configs():
     if configs.train.restart_training:
       os.makedirs(configs.train.train_ckpts_path, exist_ok=False)
       os.makedirs(configs.train.best_ckpt_path, exist_ok=False)
+    else:
+      assert os.path.exists(
+        configs.train.train_ckpts_path
+      ), f"Training without '--restart' flag set but {configs.train.train_ckpts_path} path does not exist."
+      assert os.path.exists(
+        configs.train.best_ckpts_path
+      ), f"Training without '--restart' flag set but {configs.train.best_ckpts_path} path does not exist."
 
   configs.dataset.batch_size = batch_size
 
@@ -319,10 +328,14 @@ def main():
     max_to_keep=1,
   )
   if configs.eval.is_evaluating:
-    checkpoint.restore(best_manager.latest_checkpoint)
+    checkpoint.restore(
+      best_manager.latest_checkpoint
+    ).assert_existing_objects_matched()
   elif not configs.train.restart_training:
     # Training and resuming progress from last created checkpoint
-    checkpoint.restore(progress_manager.latest_checkpoint)
+    checkpoint.restore(
+      progress_manager.latest_checkpoint
+    ).assert_existing_objects_matched()
 
   #########################
   # Training / Evaluation #
