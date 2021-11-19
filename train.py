@@ -160,17 +160,34 @@ class Train:
     """One train step."""
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
+      # loss = self.loss_fn(label, predictions)
+      ######################### Debugging #########################
+      # tf.print(f"\nlabel shape = {label.shape} | prediction shape = {predictions.shape}")
+      tf.print("predictions \n---------------------------------------------------------")
+      # tf.print(predictions)
+      tf.print(f"\n prediction nans = {tf.where(tf.math.is_nan(predictions))}")
+      tf.print(f"\n prediction zeros = {tf.where(0 == predictions)}")
+      tf.print(f"\n prediction all same value {predictions[0,0,0]} = {tf.reduce_all(predictions == predictions[0,0,0])}")
+      tf.print(f"\n sum prediction along axis 1 = {tf.reduce_sum(predictions, axis=1)}")
+      tf.print("---------------------------------------------------------")
+      tf.print("labels \n---------------------------------------------------------")
+      # tf.print(label)
+      # tf.print(f"\n labels valid one hot = {tf.reduce_all(1 == tf.reduce_sum(label, axis=1))}")
+      tf.print("---------------------------------------------------------")
+
+      # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.NONE)(label, predictions)
+      # tf.print(f"\nNo Reduction Loss = {loss}")
+      # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.SUM)(label, predictions)
       loss = self.loss_fn(label, predictions)
+      tf.print(f"\nLoss = {loss}")
+      #############################################################
     gradients = tape.gradient(loss, self.model.trainable_variables)
     self.optimizer.apply_gradients(
       zip(gradients, self.model.trainable_variables)
     )
     ######################### Debugging #########################
-    tf.print(f"label = {label} \n\n prediction = {predictions}")
-    tf.print(f"\nLoss = {loss}")
     # tf.print(f"\nGradients = {gradients}")
     #############################################################
-    # asdfjkhasfk
 
     self.train_loss_metric.update_state(loss)
     self.train_overall_acc_metric.update_state(label, predictions)
@@ -210,7 +227,7 @@ class Train:
         if i >= starting_iter:
           self.train_step(x, y, train_dataset_len)
         ######################### Debugging #########################
-        if i > 3: break
+        # if i > 3: break
         #############################################################
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
@@ -221,7 +238,7 @@ class Train:
       ):
         self.test_step(x, y)
         ######################### Debugging #########################
-        if i > 3: break
+        # if i > 3: break
         #############################################################
 
       self._print_training_results(epoch)
@@ -306,6 +323,9 @@ def main():
   loss_fn = configs.train.loss_fn()
   model = configs.model()
   optimizer = configs.train.optimizer()
+  # optimizer = tf.keras.optimizers.SGD(
+  #   learning_rate=0.000001, momentum=0
+  # )
   saved_metrics: MetricsDict = {
     "train_loss": [],
     "train_overall_acc": [],

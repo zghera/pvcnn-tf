@@ -169,9 +169,13 @@ class ClassificationHead(tf.keras.layers.Layer):
       width_multiplier=width_multiplier,
       kernel_regularizer=kernel_regularizer,
     )
+  
+  def build(self, input_shape) -> None:
+    self._softmax = tf.keras.layers.Softmax(axis=1)
+    super().build(input_shape)
 
   def call(self, inputs, training=None) -> tf.Tensor:
     x = inputs
     for layer in self._layers:
       x = layer(x, training=training)
-    return x
+    return self._softmax(x)
