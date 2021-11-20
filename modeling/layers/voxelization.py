@@ -9,7 +9,7 @@ class Voxelization(tf.keras.layers.Layer):
   """Voxelization layer."""
 
   def __init__(
-    self, resolution: int, normalize: bool = True, eps: float = 0, **kwargs
+    self, resolution: int, normalize: bool, eps: float, **kwargs
   ):
     super().__init__(**kwargs)
     self._resolution = resolution
@@ -17,15 +17,8 @@ class Voxelization(tf.keras.layers.Layer):
     self._eps = eps
 
   def build(self, input_shape) -> None:
-    features_shape, coords_shape = input_shape
+    features_shape, _ = input_shape
     _, self._num_channels, _ = features_shape
-
-    self._norm_coords = self.add_weight(
-      name="norm_coords", shape=coords_shape, trainable=True
-    )
-    self._vox_coords = self.add_weight(
-      name="vox_coords", shape=coords_shape, dtype=tf.int32, trainable=True
-    )
     super().build(input_shape)
 
   def call(self, inputs, training=None) -> Tuple[tf.Tensor, tf.Tensor]:
@@ -33,26 +26,22 @@ class Voxelization(tf.keras.layers.Layer):
     features, coords = inputs
     C, R = self._num_channels, self._resolution
 
-    self._norm_coords = coords - tf.math.reduce_mean(
-      coords, axis=2, keepdims=True
-    )
+    norm_coords = coords - tf.math.reduce_mean(coords, axis=2, keepdims=True)
 
     if self._normalize:
       coords_reduced = tf.math.reduce_max(
-        tf.norm(self._norm_coords, axis=1, keepdims=True),
+        tf.norm(norm_coords, axis=1, keepdims=True),
         axis=2,
         keepdims=True,
       )
-      self._norm_coords = (
-        self._norm_coords / (coords_reduced * 2.0 + self._eps) + 0.5
-      )
+      norm_coords = norm_coords / (coords_reduced * 2.0 + self._eps) + 0.5
     else:
-      self._norm_coords = (self._norm_coords + 1) / 2.0
+      norm_coords = (norm_coords + 1) / 2.0
 
-    self._norm_coords = tf.clip_by_value(self._norm_coords * R, 0, R - 1)
-    self._vox_coords = tf.cast(tf.round(self._norm_coords), dtype=tf.int32)
+    norm_coords = tf.clip_by_value(norm_coords * R, 0, R - 1)
+    vox_coords = tf.cast(tf.round(norm_coords), dtype=tf.int32)
 
-    vox_features_sqzd, _, _ = avg_voxelize(features, self._vox_coords, R)
+    vox_features_sqzd, _, _ = avg_voxelize(features, vox_coords, R)
     voxelized_features = tf.reshape(vox_features_sqzd, shape=(-1, C, R, R, R))
 
-    return voxelized_features, self._norm_coords
+    return voxelized_features, norm_coords

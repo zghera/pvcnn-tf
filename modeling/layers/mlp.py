@@ -78,7 +78,7 @@ class DenseBn(tf.keras.layers.Layer):
     self._relu = tf.keras.layers.ReLU()
     super().build(input_shape)
 
-  def call(self, inputs, training=None) -> tf.Tensor:
+  def call(self, inputs, training: bool) -> tf.Tensor:
     x = self._fc(inputs)
     x = self._bn(x, training=training)
     return self._relu(x)

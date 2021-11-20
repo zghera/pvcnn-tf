@@ -51,4 +51,7 @@ def config_gpu():
     except RuntimeError as e:
       # Visible devices must be set before GPUs have been initialized
       print(e)
+    os.environ["TF_CUDNN_DETERMINISTIC"]="1"
+  else:
+    raise Exception("No GPUs available. Unable to run model.")
   print()

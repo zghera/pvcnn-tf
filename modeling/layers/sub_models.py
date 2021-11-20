@@ -12,7 +12,7 @@ def create_pointnet_components(
   blocks: Tuple,
   width_multiplier: float,
   voxel_resolution_multiplier: float,
-  eps: float = 0,
+  eps: float = 1e-7,
   normalize: bool = True,
   with_se: bool = False,
   kernel_regularizer: Optional[tf.keras.regularizers.Regularizer] = None,
@@ -112,7 +112,7 @@ class PointFeaturesBranch(tf.keras.layers.Layer):
       kernel_regularizer=kernel_regularizer,
     )
 
-  def call(self, inputs, training=None) -> List[tf.Tensor]:
+  def call(self, inputs, training: bool) -> List[tf.Tensor]:
     # FloatTensor shape [B, 3, N] where axis 1 is x,y,z coordinate for a point.
     coords = inputs[:, :3, :]
 
@@ -142,13 +142,24 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
       kernel_regularizer=kernel_regularizer,
     )
 
-  def call(self, inputs, training=None) -> tf.Tensor:
+  def build(self, input_shape) -> None:
+    self._num_points = int(input_shape[-1])
+    super().build(input_shape)
+
+  # TODO: Delete debugging prints later
+  def call(self, inputs, training: bool) -> tf.Tensor:
+    # print("\nCloudFeaturesBranch inputs =", inputs)
     # Get maximum channel value for each channel over all of the points
     x = tf.math.reduce_max(inputs, axis=-1)
+    # print("\nCloudFeaturesBranch reduced inputs shape =", x.shape)
     for layer in self._layers:
       x = layer(x, training=training)
+      # print("\nCloudFeaturesBranch intermed layer shape =", x.shape)
     # Duplicate output tensor for N size num_points dimension
-    return tf.repeat(tf.expand_dims(x, axis=-1), inputs.shape[-1], axis=-1)
+    # print("\nNon-repeated out tensor = ", x)
+    # print(\nNon-repeated out tensor nan idxs = ", tf.where(tf.math.is_nan(x)))
+    # return tf.stack([x] * 4096, axis=-1)
+    return tf.repeat(tf.expand_dims(x, axis=-1), self._num_points, axis=-1)
 
 
 class ClassificationHead(tf.keras.layers.Layer):
@@ -169,12 +180,12 @@ class ClassificationHead(tf.keras.layers.Layer):
       width_multiplier=width_multiplier,
       kernel_regularizer=kernel_regularizer,
     )
-  
+
   def build(self, input_shape) -> None:
     self._softmax = tf.keras.layers.Softmax(axis=1)
     super().build(input_shape)
 
-  def call(self, inputs, training=None) -> tf.Tensor:
+  def call(self, inputs, training: bool) -> tf.Tensor:
     x = inputs
     for layer in self._layers:
       x = layer(x, training=training)

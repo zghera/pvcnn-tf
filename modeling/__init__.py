@@ -1,5 +1,5 @@
 """Experiment configurations for PVCNN models."""
-from modeling.s3dis import PVCNN
+from modeling.s3dis import PVCNN, AttentionSchedule
 from modeling.layers import (
   PointFeaturesBranch,
   CloudFeaturesBranch,
@@ -8,6 +8,7 @@ from modeling.layers import (
 
 __all__ = [
   "PVCNN",
+  "AttentionSchedule",
   "PointFeaturesBranch",
   "CloudFeaturesBranch",
   "ClassificationHead",

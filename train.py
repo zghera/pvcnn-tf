@@ -60,6 +60,8 @@ def get_configs():
 
   return configs
 
+class NanLoss(Exception): pass
+class NanGradients(Exception): pass
 
 class Train:
   """Train class."""
@@ -127,7 +129,7 @@ class Train:
     )
     # fmt: on
 
-  def _save_metrics(self):
+  def _save_train_metrics(self):
     self.saved_metrics["train_loss"].append(
       self.train_loss_metric.result().numpy()
     )
@@ -137,6 +139,8 @@ class Train:
     self.saved_metrics["train_iou_acc"].append(
       self.train_iou_acc_metric.result().numpy() * 100
     )
+
+  def _save_val_metrics(self):
     self.saved_metrics["val_loss"].append(self.eval_loss_metric.result())
     self.saved_metrics["val_overall_acc"].append(
       self.eval_overall_acc_metric.result().numpy() * 100
@@ -144,6 +148,10 @@ class Train:
     self.saved_metrics["val_iou_acc"].append(
       self.eval_iou_acc_metric.result().numpy() * 100
     )
+
+  def _save_metrics(self):
+    self._save_train_metrics()
+    self._save_val_metrics()
 
   def _reset_metrics(self):
     self.train_loss_metric.reset_state()
@@ -153,6 +161,7 @@ class Train:
     self.eval_overall_acc_metric.reset_state()
     self.eval_iou_acc_metric.reset_state()
 
+  # TODO: Delete debugging prints later
   @tf.function
   def train_step(
     self, sample: tf.Tensor, label: tf.Tensor, batches_per_epoch: int
@@ -163,30 +172,43 @@ class Train:
       # loss = self.loss_fn(label, predictions)
       ######################### Debugging #########################
       # tf.print(f"\nlabel shape = {label.shape} | prediction shape = {predictions.shape}")
-      tf.print("predictions \n---------------------------------------------------------")
+      tf.print("\npredictions")
       # tf.print(predictions)
-      tf.print(f"\n prediction nans = {tf.where(tf.math.is_nan(predictions))}")
-      tf.print(f"\n prediction zeros = {tf.where(0 == predictions)}")
-      tf.print(f"\n prediction all same value {predictions[0,0,0]} = {tf.reduce_all(predictions == predictions[0,0,0])}")
-      tf.print(f"\n sum prediction along axis 1 = {tf.reduce_sum(predictions, axis=1)}")
-      tf.print("---------------------------------------------------------")
-      tf.print("labels \n---------------------------------------------------------")
+      tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
+      tf.print("  prediction first value = ", predictions[0,0,0])
+      tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
+      # tf.print("-----------------")
+      # tf.print(f"\n sum prediction along axis 1 = {tf.reduce_sum(predictions, axis=1)}")
+      # tf.print("---------------------------------------------------------")
+      # tf.print("labels \n---------------------------------------------------------")
       # tf.print(label)
       # tf.print(f"\n labels valid one hot = {tf.reduce_all(1 == tf.reduce_sum(label, axis=1))}")
-      tf.print("---------------------------------------------------------")
+      # tf.print("---------------------------------------------------------")
 
       # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.NONE)(label, predictions)
       # tf.print(f"\nNo Reduction Loss = {loss}")
       # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.SUM)(label, predictions)
       loss = self.loss_fn(label, predictions)
-      tf.print(f"\nLoss = {loss}")
+      tf.print("Loss = ", loss)
+      # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
+      # if tf.greater(tf.size(tf.where(tf.math.is_nan(loss))), 0):
+      #   raise NanLoss
+
       #############################################################
     gradients = tape.gradient(loss, self.model.trainable_variables)
+    tf.print("global gradient norm pre-clip =", tf.linalg.global_norm(gradients))
+    gradients, _ = tf.clip_by_global_norm(gradients, 250000.0)
+    tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
     self.optimizer.apply_gradients(
       zip(gradients, self.model.trainable_variables)
     )
+    # for gradient in gradients:
+    #   gradient = tf.debugging.assert_all_finite(gradient, "gradient is nan")
+      # if tf.greater(tf.size(tf.where(tf.math.is_nan(gradient))), 0):
+      #   raise NanGradients
     ######################### Debugging #########################
     # tf.print(f"\nGradients = {gradients}")
+    tf.print("\n-------------------------------------------------------------------------\n")
     #############################################################
 
     self.train_loss_metric.update_state(loss)
@@ -204,12 +226,24 @@ class Train:
   def test_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One test step."""
     predictions = self.model(sample, training=False)
+    tf.print("\npredictions \n----------")
+    # tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
+    tf.print("  prediction first value = ", predictions[0,0,0])
+    tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
+    tf.print("-----------------\n")
     loss = self.loss_fn(label, predictions)
+    tf.print("\nLoss = ", loss)
+    # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
+    if tf.math.is_nan(loss):
+      raise NanLoss
+
+    tf.print("\n-------------------------------------------------------------------------\n")
 
     self.eval_loss_metric.update_state(loss)
     self.eval_overall_acc_metric.update_state(label, predictions)
     self.eval_iou_acc_metric.update_state(label, predictions)
 
+  # TODO: Get rid of all the NaN garbage if I fix this
   def train(
     self,
     train_dataset: tf.data.Dataset,
@@ -224,11 +258,13 @@ class Train:
       for i, (x, y) in enumerate(
         tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
       ):
-        if i >= starting_iter:
-          self.train_step(x, y, train_dataset_len)
-        ######################### Debugging #########################
-        # if i > 3: break
-        #############################################################
+        if i < starting_iter: continue
+
+        self.train_step(x, y, train_dataset_len)
+        if np.isnan(self.train_loss_metric.result()):
+          print(f"Failed on epoch {epoch} train step {i}: Loss was NaN.")
+          return self.saved_metrics
+        self._save_train_metrics()
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -237,13 +273,18 @@ class Train:
         tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
       ):
         self.test_step(x, y)
-        ######################### Debugging #########################
-        # if i > 3: break
-        #############################################################
+        if np.isnan(self.eval_loss_metric.result()):
+          print(f"Failed on epoch {epoch} val step {i}: : Loss was NaN.")
+          self.saved_metrics["val_loss"] += [0] * (test_dataset_len - i)
+          self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
+          self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
+          return self.saved_metrics
+        self._save_val_metrics()
 
       self._print_training_results(epoch)
       self._save_if_best_checkpoint(epoch)
-      self._save_metrics()
+      # TODO: Uncomment if we can train for multiple epochs
+      # self._save_metrics()
       self._reset_metrics()
 
       self.train_epoch.assign_add(1)
@@ -274,24 +315,36 @@ class Train:
 def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
 
-  ax1.plot(train_metrics["train_loss"])
-  ax1.plot(train_metrics["val_loss"])
-  ax1.legend(["Train Set", "Validation Set"], loc="upper right")
-  ax1.set_title("Loss vs Epoch")
-  ax1.set_ylabel("Loss")
-  ax1.set_xlabel("Epoch")
+  # TODO: Replace 'iteration' with 'epoch' if we can train for multiple epochs
+  # num_train = len(train_metrics["train_loss"])
+  # sample_idx = np.linspace(0, num_train - 1, num=len(train_metrics["val_loss"]), dtype=int)
 
-  ax2.plot(train_metrics["train_overall_acc"])
-  ax2.plot(train_metrics["train_iou_acc"])
-  ax2.plot(train_metrics["val_overall_acc"])
-  ax2.plot(train_metrics["val_iou_acc"])
+  # def get_sampled_train_metric(metric_list) -> np.array:
+  #   return np.asarray(metric_list)[sample_idx]
+
+  ax1.plot((train_metrics["train_loss"]))
+  # ax1.plot(train_metrics["val_loss"])
+  # ax1.legend(["Train Set", "Validation Set"], loc="upper right")
+  ax1.set_title("Train Loss vs Iteration")
+  ax1.set_ylabel("Loss")
+  ax1.set_xlabel("Iteration")
+
+  ax2.plot((train_metrics["train_overall_acc"]))
+  ax2.plot((train_metrics["train_iou_acc"]))
+  # ax2.plot(train_metrics["val_overall_acc"])
+  # ax2.plot(train_metrics["val_iou_acc"])
+  # ax2.legend(
+  #   ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
+  #   loc="upper right",
+  # )
+  # ax2.set_title("Accuracy vs Iteration")
   ax2.legend(
-    ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
+    ["Train Overall", "Train IoU"],
     loc="upper right",
   )
-  ax2.set_title("Accuracy vs Epoch")
+  ax2.set_title("Train Accuracy vs Iteration")
   ax2.set_ylabel("Accuracy")
-  ax2.set_xlabel("Epoch")
+  ax2.set_xlabel("Iteration")
 
   plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
   plt.savefig(plot_path)
@@ -323,9 +376,6 @@ def main():
   loss_fn = configs.train.loss_fn()
   model = configs.model()
   optimizer = configs.train.optimizer()
-  # optimizer = tf.keras.optimizers.SGD(
-  #   learning_rate=0.000001, momentum=0
-  # )
   saved_metrics: MetricsDict = {
     "train_loss": [],
     "train_overall_acc": [],
@@ -398,6 +448,6 @@ def main():
 if __name__ == "__main__":
   ################# Debugging #################
   # tf.data.experimental.enable_debug_mode()
-  tf.config.run_functions_eagerly(True)
+  # tf.config.run_functions_eagerly(True)
   #############################################
   main()

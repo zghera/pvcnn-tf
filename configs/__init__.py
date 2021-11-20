@@ -2,4 +2,4 @@
 from utils.config import configs
 
 configs.seed = 1588147245
-configs.deterministic = False
+configs.deterministic = True
