@@ -23,11 +23,11 @@ configs.model.kernel_regularizer = L2(1e-5)
 configs.dataset.num_points = 4096
 
 # train: scheduler
-# configs.train.optimizer.learning_rate = 1e-5
-configs.train.optimizer.learning_rate = Config(AttentionSchedule)
-configs.train.optimizer.learning_rate.d_model = 125 # Orig: 128
-configs.train.optimizer.learning_rate.warmup_steps = 7500 # Orig: 4000
-configs.train.optimizer.learning_rate.eps = 1e-8
+configs.train.optimizer.learning_rate = 1e-3
+# configs.train.optimizer.learning_rate = Config(AttentionSchedule)
+# configs.train.optimizer.learning_rate.d_model = 125 # Orig: 128
+# configs.train.optimizer.learning_rate.warmup_steps = 7500 # Orig: 4000
+# configs.train.optimizer.learning_rate.eps = 1e-8
 # configs.train.optimizer.learning_rate = Config(CosineDecay)
 # configs.train.optimizer.learning_rate.initial_learning_rate = 1e-3
 # configs.train.optimizer.learning_rate.decay_steps = configs.train.num_epochs

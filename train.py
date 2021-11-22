@@ -167,13 +167,13 @@ class Train:
     self, sample: tf.Tensor, label: tf.Tensor, batches_per_epoch: int
   ) -> None:
     """One train step."""
+    ######################### Debugging #########################
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
       # loss = self.loss_fn(label, predictions)
       ######################### Debugging #########################
       # tf.print(f"\nlabel shape = {label.shape} | prediction shape = {predictions.shape}")
       tf.print("\npredictions")
-      # tf.print(predictions)
       tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
       tf.print("  prediction first value = ", predictions[0,0,0])
       tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
@@ -197,17 +197,27 @@ class Train:
       #############################################################
     gradients = tape.gradient(loss, self.model.trainable_variables)
     tf.print("global gradient norm pre-clip =", tf.linalg.global_norm(gradients))
-    gradients, _ = tf.clip_by_global_norm(gradients, 250000.0)
+    gradients, _ = tf.clip_by_global_norm(gradients, 500000.0)
     tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
     self.optimizer.apply_gradients(
       zip(gradients, self.model.trainable_variables)
     )
-    # for gradient in gradients:
-    #   gradient = tf.debugging.assert_all_finite(gradient, "gradient is nan")
-      # if tf.greater(tf.size(tf.where(tf.math.is_nan(gradient))), 0):
-      #   raise NanGradients
-    ######################### Debugging #########################
-    # tf.print(f"\nGradients = {gradients}")
+
+    num_grad_nans = 0
+    for gradient in gradients:
+      num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
+      # gradient = tf.debugging.assert_all_finite(gradient, "gradient is nan")
+    #   # if tf.greater(tf.size(tf.where(tf.math.is_nan(gradient))), 0):
+    #   #   raise NanGradients
+    tf.print("gradient nans =", num_grad_nans)
+
+    num_weight_nans = 0
+    for layer in self.model.layers:
+      for weight in layer.weights:
+        num_weight_nans += tf.size(tf.where(tf.math.is_nan(weight)))
+        # weight = tf.debugging.assert_all_finite(weight, f"layer {str(layer.name)} is nan")
+    tf.print("weights nans =", num_weight_nans)
+
     tf.print("\n-------------------------------------------------------------------------\n")
     #############################################################
 
@@ -234,9 +244,6 @@ class Train:
     loss = self.loss_fn(label, predictions)
     tf.print("\nLoss = ", loss)
     # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
-    if tf.math.is_nan(loss):
-      raise NanLoss
-
     tf.print("\n-------------------------------------------------------------------------\n")
 
     self.eval_loss_metric.update_state(loss)
@@ -262,7 +269,7 @@ class Train:
 
         self.train_step(x, y, train_dataset_len)
         if np.isnan(self.train_loss_metric.result()):
-          print(f"Failed on epoch {epoch} train step {i}: Loss was NaN.")
+          print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
           return self.saved_metrics
         self._save_train_metrics()
 
@@ -274,7 +281,7 @@ class Train:
       ):
         self.test_step(x, y)
         if np.isnan(self.eval_loss_metric.result()):
-          print(f"Failed on epoch {epoch} val step {i}: : Loss was NaN.")
+          print(f"Failed on epoch {epoch} val step {i}: : NaNs found in tensors.")
           self.saved_metrics["val_loss"] += [0] * (test_dataset_len - i)
           self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
           self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
@@ -323,26 +330,21 @@ def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
   #   return np.asarray(metric_list)[sample_idx]
 
   ax1.plot((train_metrics["train_loss"]))
-  # ax1.plot(train_metrics["val_loss"])
-  # ax1.legend(["Train Set", "Validation Set"], loc="upper right")
-  ax1.set_title("Train Loss vs Iteration")
+  ax1.plot(train_metrics["val_loss"])
+  ax1.legend(["Train Set", "Validation Set"], loc="upper right")
+  ax1.set_title("Loss vs Iteration")
   ax1.set_ylabel("Loss")
   ax1.set_xlabel("Iteration")
 
   ax2.plot((train_metrics["train_overall_acc"]))
   ax2.plot((train_metrics["train_iou_acc"]))
-  # ax2.plot(train_metrics["val_overall_acc"])
-  # ax2.plot(train_metrics["val_iou_acc"])
-  # ax2.legend(
-  #   ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
-  #   loc="upper right",
-  # )
-  # ax2.set_title("Accuracy vs Iteration")
+  ax2.plot(train_metrics["val_overall_acc"])
+  ax2.plot(train_metrics["val_iou_acc"])
   ax2.legend(
-    ["Train Overall", "Train IoU"],
+    ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
     loc="upper right",
   )
-  ax2.set_title("Train Accuracy vs Iteration")
+  ax2.set_title("Accuracy vs Iteration")
   ax2.set_ylabel("Accuracy")
   ax2.set_xlabel("Iteration")
 

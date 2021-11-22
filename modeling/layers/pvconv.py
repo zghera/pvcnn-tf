@@ -77,22 +77,25 @@ class PVConv(tf.keras.layers.Layer):
     # IC = input channels | OC = output channels (self._out_channels)
     # features = [B, IC, N]  |  coords = [B, 3, N]
     features, coords = inputs
+    tf.print("features nans =", tf.size(tf.where(tf.math.is_nan(features))))
+    tf.print("coords nans =", tf.size(tf.where(tf.math.is_nan(coords))))
+    # features = tf.debugging.assert_all_finite(features, "features is nan")
+    # coords = tf.debugging.assert_all_finite(coords, "coords is nan")
+
     voxel_features, voxel_coords = self._voxelization((features, coords))
     # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
+    tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
+    tf.print("voxelization coords nans =", tf.size(tf.where(tf.math.is_nan(voxel_coords))))
+    # voxel_features = tf.debugging.assert_all_finite(voxel_features, "voxelization feat is nan")
+    # voxel_coords = tf.debugging.assert_all_finite(voxel_coords, "voxelization coords is nan")
+
     # voxel_features = self._bn_layers[-1](voxel_features, training=training)
-    # tf.print("\npvconv \n-------")
-    # tf.print(" voxelization feats nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-    # tf.print(" voxel layers \n ----------")
     for conv, bn, relu in zip(self._conv_layers, self._bn_layers, self._relu_layers):
       voxel_features = conv(voxel_features)
+      tf.print("conv3d out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
+      # voxel_features = tf.debugging.assert_all_finite(voxel_features, "conv3d out feat is nan")
       voxel_features = bn(voxel_features, training=training)
       voxel_features = relu(voxel_features)
-    # tf.print(" voxel layers nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-
-    # if tf.greater(tf.size(tf.where(tf.math.is_nan(voxel_features))), 0):
-    #   tf.print("PVConv voxel Conv3D layer output has nans")
-    #   voxel_features = self.replace_nans_with_zeros(voxel_features)
-    # tf.print(" voxel layers nans after =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
 
     # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)
@@ -100,9 +103,11 @@ class PVConv(tf.keras.layers.Layer):
     voxel_features, _, _ = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
+    tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
+    # voxel_features = tf.debugging.assert_all_finite(voxel_features, "devox out feat is nan")
     # |--> voxel_features = [B, OC, N]
-    # tf.print(" trilinear_devox feats nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-    fused_features = voxel_features + self._point_features(features)
+    fused_features = voxel_features + self._point_features(features, training=training)
+    tf.print("fused out features nans =", tf.size(tf.where(tf.math.is_nan(fused_features))))
+    # fused_features = tf.debugging.assert_all_finite(fused_features, "fused feat is nan")
     # |--> fused_features = [B, OC, N]
-    # tf.print(" fused feats nans =", tf.size(tf.where(tf.math.is_nan(fused_features))))
     return fused_features, coords
