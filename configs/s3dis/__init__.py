@@ -2,7 +2,7 @@
 import tensorflow as tf
 from dataloaders.s3dis import DatasetS3DIS
 
-from metrics.s3dis import OverallAccuracy, IouAccuracy
+from metrics.s3dis import IouAccuracy
 from utils.config import Config, configs
 
 # data
@@ -37,14 +37,14 @@ configs.dataset.seed = configs.seed
 # metrics
 configs.metrics = Config()
 configs.metrics.eval = Config()
-configs.metrics.eval.overall = Config(OverallAccuracy)
-configs.metrics.eval.overall.split = "test"
+configs.metrics.eval.overall = Config(tf.keras.metrics.CategoricalAccuracy)
+configs.metrics.eval.overall.name = "acc/overall_test"
 configs.metrics.eval.iou = Config(IouAccuracy)
 configs.metrics.eval.iou.split = "test"
 configs.metrics.eval.iou.num_classes = configs.data.num_classes
 configs.metrics.train = Config()
-configs.metrics.train.overall = Config(OverallAccuracy)
-configs.metrics.train.overall.split = "train"
+configs.metrics.train.overall = Config(tf.keras.metrics.CategoricalAccuracy)
+configs.metrics.train.overall.name = "acc/overall_train"
 configs.metrics.train.iou = Config(IouAccuracy)
 configs.metrics.train.iou.split = "train"
 configs.metrics.train.iou.num_classes = configs.data.num_classes

@@ -3,39 +3,6 @@ import tensorflow as tf
 import numpy as np
 from keras import backend
 
-
-class OverallAccuracy(tf.keras.metrics.Metric):
-  """Mean overall accuracy metric."""
-
-  def __init__(self, split: str, **kwargs) -> None:
-    assert split in ["train", "test"]
-    super().__init__(name=f"acc/overall_{split}", **kwargs)
-    self._total_seen_num = self.add_weight(
-      name="seen", initializer="zeros", dtype=tf.float32
-    )
-    self._total_correct_num = self.add_weight(
-      name="correct", initializer="zeros", dtype=tf.float32
-    )
-
-  def reset_state(self) -> None:
-    backend.batch_set_value(
-      [(v, np.zeros(v.shape.as_list())) for v in self.variables]
-    )
-
-  def update_state(self, y_true: tf.Tensor, y_pred: tf.Tensor):
-    # y_pred shape is [B, 13, num_points] | y_true shape is [B, 13, num_points]
-    y_true_categ = tf.math.argmax(y_true, axis=1)
-    y_pred_categ = tf.math.argmax(y_pred, axis=1)
-
-    self._total_seen_num.assign_add(tf.size(y_true, out_type=tf.float32))
-    self._total_correct_num.assign_add(
-      tf.reduce_sum(tf.cast(y_true_categ == y_pred_categ, dtype=tf.float32))
-    )
-
-  def result(self) -> None:
-    return self._total_correct_num / self._total_seen_num
-
-
 class IouAccuracy(tf.keras.metrics.Metric):
   """Mean IoU accuracy metric."""
 

@@ -106,7 +106,10 @@ class PVConv(tf.keras.layers.Layer):
     tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     # voxel_features = tf.debugging.assert_all_finite(voxel_features, "devox out feat is nan")
     # |--> voxel_features = [B, OC, N]
-    fused_features = voxel_features + self._point_features(features, training=training)
+    point_features = self._point_features(features, training=training)
+    tf.print("point feautes nans =", tf.size(tf.where(tf.math.is_nan(point_features))))
+    # |--> point_features = [B, OC, N]
+    fused_features = voxel_features + point_features
     tf.print("fused out features nans =", tf.size(tf.where(tf.math.is_nan(fused_features))))
     # fused_features = tf.debugging.assert_all_finite(fused_features, "fused feat is nan")
     # |--> fused_features = [B, OC, N]
