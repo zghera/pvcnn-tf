@@ -139,9 +139,13 @@ class Train:
     self.saved_metrics["train_iou_acc"].append(
       self.train_iou_acc_metric.result().numpy() * 100
     )
+    print("----------- metrics -----------")
+    for k, v in self.saved_metrics.items():
+      print(k, len(v))
+    print("------------------------------")
 
   def _save_val_metrics(self):
-    self.saved_metrics["val_loss"].append(self.eval_loss_metric.result())
+    self.saved_metrics["val_loss"].append(self.eval_loss_metric.result().numpy())
     self.saved_metrics["val_overall_acc"].append(
       self.eval_overall_acc_metric.result().numpy() * 100
     )
@@ -197,8 +201,8 @@ class Train:
       #############################################################
     gradients = tape.gradient(loss, self.model.trainable_variables)
     tf.print("global gradient norm pre-clip =", tf.linalg.global_norm(gradients))
-    gradients, _ = tf.clip_by_global_norm(gradients, 500000.0)
-    tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
+    # gradients, _ = tf.clip_by_global_norm(gradients, 500000.0)
+    # tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
     self.optimizer.apply_gradients(
       zip(gradients, self.model.trainable_variables)
     )
@@ -218,12 +222,14 @@ class Train:
         # weight = tf.debugging.assert_all_finite(weight, f"layer {str(layer.name)} is nan")
     tf.print("weights nans =", num_weight_nans)
 
-    tf.print("\n-------------------------------------------------------------------------\n")
-    #############################################################
-
     self.train_loss_metric.update_state(loss)
     self.train_overall_acc_metric.update_state(label, predictions)
+    tf.print("categ acc =", self.train_overall_acc_metric.result())
     self.train_iou_acc_metric.update_state(label, predictions)
+    tf.print("iou acc =", self.train_iou_acc_metric.result())
+
+    tf.print("\n-------------------------------------------------------------------------\n")
+    #############################################################
 
     def _save():
       ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
@@ -328,16 +334,20 @@ def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
 
   # def get_sampled_train_metric(metric_list) -> np.array:
   #   return np.asarray(metric_list)[sample_idx]
+  print("----------- metrics -----------")
+  for k, v in train_metrics.items():
+    print(k, len(v))
+  print("------------------------------")
 
-  ax1.plot((train_metrics["train_loss"]))
+  ax1.plot(train_metrics["train_loss"])
   ax1.plot(train_metrics["val_loss"])
   ax1.legend(["Train Set", "Validation Set"], loc="upper right")
   ax1.set_title("Loss vs Iteration")
   ax1.set_ylabel("Loss")
   ax1.set_xlabel("Iteration")
 
-  ax2.plot((train_metrics["train_overall_acc"]))
-  ax2.plot((train_metrics["train_iou_acc"]))
+  ax2.plot(train_metrics["train_overall_acc"])
+  ax2.plot(train_metrics["train_iou_acc"])
   ax2.plot(train_metrics["val_overall_acc"])
   ax2.plot(train_metrics["val_iou_acc"])
   ax2.legend(
