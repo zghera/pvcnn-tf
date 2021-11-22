@@ -139,10 +139,10 @@ class Train:
     self.saved_metrics["train_iou_acc"].append(
       self.train_iou_acc_metric.result().numpy() * 100
     )
-    print("----------- metrics -----------")
-    for k, v in self.saved_metrics.items():
-      print(k, len(v))
-    print("------------------------------")
+    # print("----------- metrics -----------")
+    # for k, v in self.saved_metrics.items():
+    #   print(k, len(v))
+    # print("------------------------------")
 
   def _save_val_metrics(self):
     self.saved_metrics["val_loss"].append(self.eval_loss_metric.result().numpy())
@@ -200,12 +200,9 @@ class Train:
 
       #############################################################
     gradients = tape.gradient(loss, self.model.trainable_variables)
-    tf.print("global gradient norm pre-clip =", tf.linalg.global_norm(gradients))
+    # tf.print("global gradient norm pre-clip =", tf.linalg.global_norm(gradients))
     # gradients, _ = tf.clip_by_global_norm(gradients, 500000.0)
     # tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
-    self.optimizer.apply_gradients(
-      zip(gradients, self.model.trainable_variables)
-    )
 
     num_grad_nans = 0
     for gradient in gradients:
@@ -214,6 +211,20 @@ class Train:
     #   # if tf.greater(tf.size(tf.where(tf.math.is_nan(gradient))), 0):
     #   #   raise NanGradients
     tf.print("gradient nans =", num_grad_nans)
+    grads_wo_zeros = []
+    for gradient in gradients:
+      grads_wo_zeros.append(tf.where(tf.math.is_nan(gradient), tf.zeros_like(gradient), gradient))
+    global_grad_norm = tf.linalg.global_norm(grads_wo_zeros)
+    for gradient in gradients:
+      gradient = tf.where(tf.math.is_nan(gradient), tf.fill(gradient.shape, global_grad_norm), gradient)
+    num_grad_nans = 0
+    for gradient in gradients:
+      num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
+    tf.print("gradient nans AFTER removing nans =", num_grad_nans)
+
+    self.optimizer.apply_gradients(
+      zip(gradients, self.model.trainable_variables)
+    )
 
     num_weight_nans = 0
     for layer in self.model.layers:
@@ -273,11 +284,15 @@ class Train:
       ):
         if i < starting_iter: continue
 
-        self.train_step(x, y, train_dataset_len)
-        if np.isnan(self.train_loss_metric.result()):
-          print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
+        try:
+          self.train_step(x, y, train_dataset_len)
+          if np.isnan(self.train_loss_metric.result()):
+            print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
+            return self.saved_metrics
+          self._save_train_metrics()
+        except KeyboardInterrupt:
+          print("KeyboardInterrupt received. Plotting now.")
           return self.saved_metrics
-        self._save_train_metrics()
 
       starting_iter = 0  # Only start part-way through epoch on 1st epoch
       self.train_iter_in_epoch.assign(0)
@@ -448,6 +463,7 @@ def main():
     eval_iou_metric=configs.metrics.eval.iou(),
     saved_metrics=saved_metrics,
   )
+
   if configs.eval.is_evaluating:
     train_obj.eval(test_dataset, test_dataset_len)
   train_metrics = train_obj.train(

@@ -85,6 +85,8 @@ class PVConv(tf.keras.layers.Layer):
     voxel_features, voxel_coords = self._voxelization((features, coords))
     # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
     tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
+    voxel_features = tf.where(tf.math.is_nan(voxel_features), tf.zeros_like(voxel_features), voxel_features)
+    tf.print("voxelization features CLIPPED nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     tf.print("voxelization coords nans =", tf.size(tf.where(tf.math.is_nan(voxel_coords))))
     # voxel_features = tf.debugging.assert_all_finite(voxel_features, "voxelization feat is nan")
     # voxel_coords = tf.debugging.assert_all_finite(voxel_coords, "voxelization coords is nan")
