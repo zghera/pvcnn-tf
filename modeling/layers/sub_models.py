@@ -154,6 +154,7 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
     # print("\nCloudFeaturesBranch reduced inputs shape =", x.shape)
     for layer in self._layers:
       x = layer(x, training=training)
+      tf.print("CloudFeaturesBranch layer x out nans =", tf.size(tf.where(tf.math.is_nan(x))))
       # print("\nCloudFeaturesBranch intermed layer shape =", x.shape)
     # Duplicate output tensor for N size num_points dimension
     # print("\nNon-repeated out tensor = ", x)
@@ -189,4 +190,5 @@ class ClassificationHead(tf.keras.layers.Layer):
     x = inputs
     for layer in self._layers:
       x = layer(x, training=training)
+      tf.print("ClassificationHead layer x out nans =", tf.size(tf.where(tf.math.is_nan(x))))
     return self._softmax(x)
