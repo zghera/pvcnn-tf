@@ -110,6 +110,10 @@ class Train:
       save_path = self.best_manager.save(checkpoint_number=epoch)
       print(f"NEW BEST checkpoint at epoch {epoch}! Saved to {save_path}\n\n")
 
+  def _save_progress_checkpoint(self, batches_per_epoch: int):
+    ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+    self.progress_manager.save(checkpoint_number=ckpt_num)
+
   def _print_training_results(
     self, epoch: int, iter_in_epoch: Optional[int] = None
   ):
@@ -165,7 +169,7 @@ class Train:
   # TODO: Delete debugging prints later
   @tf.function
   def train_step(
-    self, sample: tf.Tensor, label: tf.Tensor, batches_per_epoch: int
+    self, sample: tf.Tensor, label: tf.Tensor
   ) -> None:
     """One train step."""
     ######################### Debugging #########################
@@ -247,11 +251,6 @@ class Train:
     tf.print("\n-------------------------------------------------------------------------\n")
     #############################################################
 
-    def _save():
-      ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
-      self.progress_manager.save(checkpoint_number=ckpt_num)
-
-    tf.py_function(_save, [], [])
     self.train_iter_in_epoch.assign_add(1)
 
   @tf.function
@@ -290,11 +289,12 @@ class Train:
         ):
           if i < starting_iter: continue
 
-          self.train_step(x, y, train_dataset_len)
+          self.train_step(x, y)
           if np.isnan(self.train_loss_metric.result()):
             print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
             return self.saved_metrics # TODO: Maybe remove this if we keep finally
           self._save_train_metrics()
+          self._save_progress_checkpoint(train_dataset_len)
 
         starting_iter = 0  # Only start part-way through epoch on 1st epoch
         self.train_iter_in_epoch.assign(0)

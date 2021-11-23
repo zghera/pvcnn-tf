@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from modeling.layers.voxelization import Voxelization
 from modeling.layers.mlp import ConvBn
+from modeling.layers.nan_filter import NanFilter
 
 from ops import trilinear_devoxelize
 
@@ -66,6 +67,10 @@ class PVConv(tf.keras.layers.Layer):
     )
 
     self._squeeze = tf.keras.layers.Reshape((self._out_channels, -1))
+
+    # self._voxelization_nan_filter = NanFilter()
+    # self._devoxelization_nan_filter = NanFilter()
+    # self._point_features_nan_filter = NanFilter()
     super().build(input_shape)
 
   # @staticmethod
@@ -85,7 +90,9 @@ class PVConv(tf.keras.layers.Layer):
     voxel_features, voxel_coords = self._voxelization((features, coords))
     # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
     tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-    voxel_features = tf.where(tf.math.is_nan(voxel_features), tf.zeros_like(voxel_features), voxel_features)
+    # voxel_features = tf.where(tf.math.is_nan(voxel_features), tf.zeros_like(voxel_features), voxel_features)
+    voxel_features = NanFilter()(voxel_features)
+    # voxel_features = self._voxelization_nan_filter(voxel_features)
     # tf.print("voxelization features CLIPPED nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     # tf.print("voxelization coords nans =", tf.size(tf.where(tf.math.is_nan(voxel_coords))))
     # voxel_features = tf.debugging.assert_all_finite(voxel_features, "voxelization feat is nan")
@@ -108,9 +115,13 @@ class PVConv(tf.keras.layers.Layer):
     tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     # voxel_features = tf.debugging.assert_all_finite(voxel_features, "devox out feat is nan")
     # |--> voxel_features = [B, OC, N]
+    # voxel_features = self._devoxelization_nan_filter(voxel_features)
+
     point_features = self._point_features(features, training=training)
     tf.print("point feautes nans =", tf.size(tf.where(tf.math.is_nan(point_features))))
     # |--> point_features = [B, OC, N]
+    # point_features = self._point_features_nan_filter(voxel_features)
+
     fused_features = voxel_features + point_features
     # tf.print("fused out features nans =", tf.size(tf.where(tf.math.is_nan(fused_features))))
     # fused_features = tf.debugging.assert_all_finite(fused_features, "fused feat is nan")
