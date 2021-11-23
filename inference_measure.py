@@ -7,13 +7,16 @@ from tensorflow.python import training
 
 from utils.common import get_configs
 
+
 def main():
   tf.keras.backend.set_image_data_format("channels_first")
   parser = argparse.ArgumentParser()
   parser.add_argument("config", nargs="+")
   args, _ = parser.parse_known_args()
 
-  configs = get_configs(args.config[0], is_evaluating=True, restart_training=False)
+  configs = get_configs(
+    args.config[0], is_evaluating=True, restart_training=False
+  )
 
   print(f'\n==> Loading dataset "{configs.dataset}"')
   dataset = configs.dataset()
@@ -27,10 +30,15 @@ def main():
     return model(sample, training=False)
 
   x, _ = next(iter(test_dataset))
-  single_sample = tf.expand_dims(x[0,:,:], axis=0)
+  single_sample = tf.expand_dims(x[0, :, :], axis=0)
   print("\n\nCalculating inference time and memory usage...")
-  print("\nInference Time =", timeit.timeit(lambda: inference(single_sample), number=100) / 100)
-  print("RAM Usage =", psutil.virtual_memory()._asdict()['used'] / (1 << 30))
+  print(
+    f"\nInference Time = {(timeit.timeit(lambda: inference(single_sample), number=100) / 100) * 1000} ms"
+  )
+  print(
+    f"GPU RAM Usage = {tf.config.experimental.get_memory_info('GPU:0')['peak'] / (1 << 30)} GB"
+  )
+
 
 if __name__ == "__main__":
   main()
