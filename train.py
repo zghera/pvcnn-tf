@@ -93,16 +93,15 @@ class Train:
     # fmt: on
 
   def _save_train_metrics(self):
-    loss = self.train_loss_metric.result().numpy()
-    overall_acc = self.train_overall_acc_metric.result().numpy() * 100
-    iou_acc = self.train_iou_acc_metric.result().numpy() * 100
-    self.saved_metrics["train_loss"].append(loss)
-    self.saved_metrics["train_overall_acc"].append(overall_acc)
-    self.saved_metrics["train_iou_acc"].append(iou_acc)
-    # print("----------- metrics -----------")
-    # for k, v in self.saved_metrics.items():
-    #   print(k, len(v))
-    # print("------------------------------")
+    self.saved_metrics["train_loss"].append(
+      self.train_loss_metric.result().numpy()
+    )
+    self.saved_metrics["train_overall_acc"].append(
+      self.train_overall_acc_metric.result().numpy() * 100
+    )
+    self.saved_metrics["train_iou_acc"].append(
+      self.train_iou_acc_metric.result().numpy() * 100
+    )
 
   def _save_val_metrics(self):
     self.saved_metrics["val_loss"].append(self.eval_loss_metric.result().numpy())
@@ -143,10 +142,10 @@ class Train:
       # loss = self.loss_fn(label, predictions)
       ######################### Debugging #########################
       # tf.print(f"\nlabel shape = {label.shape} | prediction shape = {predictions.shape}")
-      tf.print("\npredictions")
-      tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
-      tf.print("  prediction first value = ", predictions[0,0,0])
-      tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
+      # tf.print("\npredictions")
+      # tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
+      # tf.print("  prediction first value = ", predictions[0,0,0])
+      # tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
       # tf.print("-----------------")
       # tf.print(f"\n sum prediction along axis 1 = {tf.reduce_sum(predictions, axis=1)}")
       # tf.print("---------------------------------------------------------")
@@ -159,7 +158,7 @@ class Train:
       # tf.print(f"\nNo Reduction Loss = {loss}")
       # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.SUM)(label, predictions)
       loss = self.loss_fn(label, predictions)
-      tf.print("Loss = ", loss)
+      # tf.print("\nLoss = ", loss)
       # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
       # if tf.greater(tf.size(tf.where(tf.math.is_nan(loss))), 0):
       #   raise NanLoss
@@ -170,13 +169,13 @@ class Train:
     # gradients, _ = tf.clip_by_global_norm(gradients, 500000.0)
     # tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
 
-    num_grad_nans = 0
-    for gradient in gradients:
-      num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
+    # num_grad_nans = 0
+    # for gradient in gradients:
+    #   num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
       # gradient = tf.debugging.assert_all_finite(gradient, "gradient is nan")
     #   # if tf.greater(tf.size(tf.where(tf.math.is_nan(gradient))), 0):
     #   #   raise NanGradients
-    tf.print("gradient nans =", num_grad_nans)
+    # tf.print("gradient nans =", num_grad_nans)
     nan_clipped_grads = []
     for gradient in gradients:
       nan_clipped_grads.append(tf.where(tf.math.is_nan(gradient), tf.ones_like(gradient), gradient))
@@ -185,21 +184,21 @@ class Train:
     # nan_clipped_grads = []
     # for gradient in gradients:
     #   nan_clipped_grads.append(tf.where(tf.math.is_nan(gradient), tf.fill(gradient.shape, global_grad_norm), gradient))
-    num_grad_nans = 0
-    for gradient in nan_clipped_grads:
-      num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
-    tf.print("gradient nans AFTER removing nans =", num_grad_nans)
+    # num_grad_nans = 0
+    # for gradient in nan_clipped_grads:
+    #   num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
+    # tf.print("gradient nans AFTER removing nans =", num_grad_nans)
 
     self.optimizer.apply_gradients(
       zip(nan_clipped_grads, self.model.trainable_variables)
     )
 
-    num_weight_nans = 0
-    for layer in self.model.layers:
-      for weight in layer.weights:
-        num_weight_nans += tf.size(tf.where(tf.math.is_nan(weight)))
+    # num_weight_nans = 0
+    # for layer in self.model.layers:
+    #   for weight in layer.weights:
+    #     num_weight_nans += tf.size(tf.where(tf.math.is_nan(weight)))
         # weight = tf.debugging.assert_all_finite(weight, f"layer {str(layer.name)} is nan")
-    tf.print("weights nans =", num_weight_nans)
+    # tf.print("weights nans =", num_weight_nans)
 
     self.train_loss_metric.update_state(loss)
     self.train_overall_acc_metric.update_state(label, predictions)
@@ -207,7 +206,7 @@ class Train:
     self.train_iou_acc_metric.update_state(label, predictions)
     # tf.print("iou acc =", self.train_iou_acc_metric.result())
 
-    tf.print("\n-------------------------------------------------------------------------\n")
+    # tf.print("\n-------------------------------------------------------------------------\n")
     #############################################################
 
     self.train_iter_in_epoch.assign_add(1)
@@ -216,15 +215,15 @@ class Train:
   def test_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One test step."""
     predictions = self.model(sample, training=False)
-    tf.print("\npredictions \n----------")
+    # tf.print("\npredictions \n----------")
     # tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
-    tf.print("  prediction first value = ", predictions[0,0,0])
-    tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
-    tf.print("-----------------\n")
+    # tf.print("  prediction first value = ", predictions[0,0,0])
+    # tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
+    # tf.print("-----------------\n")
     loss = self.loss_fn(label, predictions)
-    tf.print("\nLoss = ", loss)
+    # tf.print("\nLoss = ", loss)
     # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
-    tf.print("\n-------------------------------------------------------------------------\n")
+    # tf.print("\n-------------------------------------------------------------------------\n")
 
     self.eval_loss_metric.update_state(loss)
     self.eval_overall_acc_metric.update_state(label, predictions)
@@ -252,7 +251,7 @@ class Train:
           if np.isnan(self.train_loss_metric.result()):
             print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
             return self.saved_metrics # TODO: Maybe remove this if we keep finally
-          self._save_train_metrics()
+          # self._save_train_metrics()
           self._save_progress_checkpoint(train_dataset_len)
 
         starting_iter = 0  # Only start part-way through epoch on 1st epoch
@@ -268,12 +267,11 @@ class Train:
             self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
             self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
             return self.saved_metrics# TODO: Maybe remove this if we keep finally
-          self._save_val_metrics()
+          # self._save_val_metrics()
 
         self._print_training_results(epoch)
         self._save_if_best_checkpoint(epoch)
-        # TODO: Uncomment if we can train for multiple epochs
-        # self._save_metrics()
+        self._save_metrics()
         self._reset_metrics()
 
         self.train_epoch.assign_add(1)
@@ -305,7 +303,8 @@ class Train:
     )
 
 
-def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
+'''
+def plot_train_results_iter(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
 
   print("----------- metrics -----------")
@@ -330,24 +329,17 @@ def plot_train_results(train_metrics: MetricsDict, save_path: str) -> None:
 
   plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
   plt.savefig(plot_path)
-
 '''
+
 def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
 
-  # TODO: Replace 'iteration' with 'epoch' if we can train for multiple epochs
-  # num_train = len(train_metrics["train_loss"])
-  # sample_idx = np.linspace(0, num_train - 1, num=len(train_metrics["val_loss"]), dtype=int)
-
-  # def get_sampled_train_metric(metric_list) -> np.array:
-  #   return np.asarray(metric_list)[sample_idx]
-
   ax1.plot(train_metrics["train_loss"])
-  # ax1.plot(train_metrics["val_loss"])
-  # ax1.legend(["Train Set", "Validation Set"], loc="upper right")
-  ax1.set_title("Train Loss vs Iteration")
+  ax1.plot(train_metrics["val_loss"])
+  ax1.legend(["Train Set", "Validation Set"], loc="upper right")
+  ax1.set_title("Loss versus Epoch")
   ax1.set_ylabel("Loss")
-  ax1.set_xlabel("Iteration")
+  ax1.set_xlabel("Epoch")
 
   ax2.plot(train_metrics["train_overall_acc"])
   ax2.plot(train_metrics["train_iou_acc"])
@@ -357,13 +349,12 @@ def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None
     ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
     loc="upper left",
   )
-  ax2.set_title("Accuracy vs Iteration")
+  ax2.set_title("Accuracy versus Epoch")
   ax2.set_ylabel("Accuracy")
-  ax2.set_xlabel("Iteration")
+  ax2.set_xlabel("Epoch")
 
   plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
   plt.savefig(plot_path)
-'''
 
 def main():
   #################
@@ -459,7 +450,7 @@ def main():
     train_dataset, test_dataset, train_dataset_len, test_dataset_len
   )
 
-  plot_train_results(train_metrics, configs.train.save_path)
+  plot_train_results_epoch(train_metrics, configs.train.save_path)
 
 
 if __name__ == "__main__":

@@ -15,14 +15,14 @@ class AttentionSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
   def __call__(self, step):
     arg1 = tf.math.rsqrt(step)
     arg2 = step * (self.warmup_steps ** -1.5)
-    tf.print("----------------")
-    tf.print("step = ", step)
-    tf.print("arg1 = ", arg1)
-    tf.print("arg2 = ", arg2)
+    # tf.print("----------------")
+    # tf.print("step = ", step)
+    # tf.print("arg1 = ", arg1)
+    # tf.print("arg2 = ", arg2)
 
     lr = tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2) + self.eps
-    tf.print("lr = ", lr)
-    tf.print("----------------")
+    # tf.print("lr = ", lr)
+    # tf.print("----------------")
     return lr
 
 
