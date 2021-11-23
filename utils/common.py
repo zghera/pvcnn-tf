@@ -37,8 +37,8 @@ def get_configs(configs_path: str, is_evaluating: bool, restart_training: bool):
         configs.train.train_ckpts_path
       ), f"Training without '--restart' flag set but {configs.train.train_ckpts_path} path does not exist."
       assert os.path.exists(
-        configs.train.best_ckpts_path
-      ), f"Training without '--restart' flag set but {configs.train.best_ckpts_path} path does not exist."
+        configs.train.best_ckpt_path
+      ), f"Training without '--restart' flag set but {configs.train.best_ckpt_path} path does not exist."
 
   configs.dataset.batch_size = batch_size
 

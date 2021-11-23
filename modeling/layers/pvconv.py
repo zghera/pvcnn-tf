@@ -80,14 +80,15 @@ class PVConv(tf.keras.layers.Layer):
     # IC = input channels | OC = output channels (self._out_channels)
     # features = [B, IC, N]  |  coords = [B, 3, N]
     features, coords = inputs
-    tf.print("\nfeatures nans =", tf.size(tf.where(tf.math.is_nan(features))))
+    # tf.print("\nfeatures nans =", tf.size(tf.where(tf.math.is_nan(features))))
     # tf.print("coords nans =", tf.size(tf.where(tf.math.is_nan(coords))))
     # features = tf.debugging.assert_all_finite(features, "features is nan")
     # coords = tf.debugging.assert_all_finite(coords, "coords is nan")
 
     voxel_features, voxel_coords = self._voxelization((features, coords))
+    # tf.print("voxel features shape=", voxel_features.shape)
     # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
-    tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
+    # tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     voxel_features = self.replace_nans_with_norm(voxel_features)
     # voxel_features = self._voxelization_nan_filter(voxel_features)
     # tf.print("voxelization features CLIPPED nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
@@ -109,13 +110,13 @@ class PVConv(tf.keras.layers.Layer):
     voxel_features, _, _ = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
-    tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
+    # tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     # voxel_features = tf.debugging.assert_all_finite(voxel_features, "devox out feat is nan")
     # |--> voxel_features = [B, OC, N]
     voxel_features = self.replace_nans_with_norm(voxel_features)
 
     point_features = self._point_features(features, training=training)
-    tf.print("point feautes nans =", tf.size(tf.where(tf.math.is_nan(point_features))))
+    # tf.print("point feautes nans =", tf.size(tf.where(tf.math.is_nan(point_features))))
     # |--> point_features = [B, OC, N]
     point_features = self.replace_nans_with_norm(point_features)
 

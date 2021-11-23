@@ -1,31 +1,36 @@
 import argparse
 import tensorflow as tf
+import timeit
+import psutil
 
-from modeling import PVCNN
+from tensorflow.python import training
 
-import os
 from utils.common import get_configs
 
 def main():
+  tf.keras.backend.set_image_data_format("channels_first")
   parser = argparse.ArgumentParser()
-  parser.add_argument("checkpoint_dir", nargs="+")
+  parser.add_argument("config", nargs="+")
   args, _ = parser.parse_known_args()
 
-  path = args.checkpoint_dir[0]
-  configs = get_configs(path, is_evaluating=True, restart_training=False)
+  configs = get_configs(args.config[0], is_evaluating=True, restart_training=False)
 
-  # model = PVCNN([], 0, None, 0, 0)
-  # checkpoint = tf.train.Checkpoint(
-  #   model=model,
-  # )
-  # manager = tf.train.CheckpointManager(
-  #   checkpoint, directory=path, max_to_keep=1
-  # )
-  # checkpoint.restore(
-  #   manager.latest_checkpoint
-  # ).assert_existing_objects_matched()
-  # print(model)
+  print(f'\n==> Loading dataset "{configs.dataset}"')
+  dataset = configs.dataset()
+  test_dataset = dataset["test"]
 
+  print(f'\n==> Creating model "{configs.model}"')
+  model = configs.model()
+
+  @tf.function
+  def inference(sample: tf.Tensor):
+    return model(sample, training=False)
+
+  x, _ = next(iter(test_dataset))
+  single_sample = tf.expand_dims(x[0,:,:], axis=0)
+  print("\n\nCalculating inference time and memory usage...")
+  print("\nInference Time =", timeit.timeit(lambda: inference(single_sample), number=100) / 100)
+  print("RAM Usage =", psutil.virtual_memory()._asdict()['used'] / (1 << 30))
 
 if __name__ == "__main__":
   main()
