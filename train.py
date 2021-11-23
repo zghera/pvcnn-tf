@@ -3,65 +3,24 @@ from typing import Tuple, Iterator, Dict, Optional
 
 import os
 import argparse
+from tensorflow._api.v2 import config
 from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-from utils.common import get_save_path, config_gpu
+from utils.common import get_configs, config_gpu
 
 MetricsDict = Dict[str, tf.keras.metrics.Metric]
 
-
-def get_configs():
-  """Return Config object after updating from cmd line arguments."""
-  from utils.config import configs  # pylint: disable=import-outside-toplevel
-
+def get_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("configs", nargs="+")
   parser.add_argument("--restart", default=False, action="store_true")
   parser.add_argument("--eval", default=False, action="store_true")
-  args, opts = parser.parse_known_args()
+  args, _ = parser.parse_known_args()
 
-  print(f"==> loading configs from {args.configs}")
-  configs.update_from_modules(*args.configs)
-
-  # define save path
-  configs.train.save_path = get_save_path(*args.configs, prefix="runs")
-
-  # override configs with args
-  configs.update_from_arguments(*opts)
-  configs.eval.is_evaluating = args.eval
-  configs.train.restart_training = args.restart
-  assert (
-    not configs.train.restart_training or not configs.eval.is_evaluating
-  ), "Cannot set '--restart' and '--eval' flag at the same time."
-
-  save_path = configs.train.save_path
-  configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")
-  configs.train.best_ckpt_path = os.path.join(save_path, "best_ckpt")
-
-  if configs.eval.is_evaluating:
-    batch_size = configs.eval.batch_size
-  else:
-    batch_size = configs.train.batch_size
-    if configs.train.restart_training:
-      os.makedirs(configs.train.train_ckpts_path, exist_ok=False)
-      os.makedirs(configs.train.best_ckpt_path, exist_ok=False)
-    else:
-      assert os.path.exists(
-        configs.train.train_ckpts_path
-      ), f"Training without '--restart' flag set but {configs.train.train_ckpts_path} path does not exist."
-      assert os.path.exists(
-        configs.train.best_ckpts_path
-      ), f"Training without '--restart' flag set but {configs.train.best_ckpts_path} path does not exist."
-
-  configs.dataset.batch_size = batch_size
-
-  return configs
-
-class NanLoss(Exception): pass
-class NanGradients(Exception): pass
+  return args.configs[0], args.eval, args.restart
 
 class Train:
   """Train class."""
@@ -406,7 +365,6 @@ def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None
   plt.savefig(plot_path)
 '''
 
-
 def main():
   #################
   # Configuration #
@@ -414,7 +372,8 @@ def main():
   # Use channels first format for ease of comparing shapes with original impl.
   tf.keras.backend.set_image_data_format("channels_first")
   config_gpu()
-  configs = get_configs()
+  configs_path, is_evaluating, restart_training = get_args()
+  configs = get_configs(configs_path, is_evaluating, restart_training)
   tf.random.set_seed(configs.seed)
   np.random.seed(configs.seed)
   print("------------ Configuration ------------")

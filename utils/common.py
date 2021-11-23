@@ -4,6 +4,46 @@ import tensorflow as tf
 
 __all__ = ["get_save_path", "config_gpu"]
 
+def get_configs(configs_path: str, is_evaluating: bool, restart_training: bool):
+  """Return Config object."""
+  from utils.config import configs  # pylint: disable=import-outside-toplevel
+
+  print(f"==> loading configs from {configs_path}")
+  configs.update_from_modules(configs_path)
+
+  # define save path
+  configs.train.save_path = get_save_path(configs_path, prefix="runs")
+
+  # override configs with args
+  configs.eval.is_evaluating = is_evaluating
+  configs.train.restart_training = restart_training
+  assert (
+    not configs.train.restart_training or not configs.eval.is_evaluating
+  ), "Cannot set '--restart' and '--eval' flag at the same time."
+
+  save_path = configs.train.save_path
+  configs.train.train_ckpts_path = os.path.join(save_path, "training_ckpts")
+  configs.train.best_ckpt_path = os.path.join(save_path, "best_ckpt")
+
+  if configs.eval.is_evaluating:
+    batch_size = configs.eval.batch_size
+  else:
+    batch_size = configs.train.batch_size
+    if configs.train.restart_training:
+      os.makedirs(configs.train.train_ckpts_path, exist_ok=False)
+      os.makedirs(configs.train.best_ckpt_path, exist_ok=False)
+    else:
+      assert os.path.exists(
+        configs.train.train_ckpts_path
+      ), f"Training without '--restart' flag set but {configs.train.train_ckpts_path} path does not exist."
+      assert os.path.exists(
+        configs.train.best_ckpts_path
+      ), f"Training without '--restart' flag set but {configs.train.best_ckpts_path} path does not exist."
+
+  configs.dataset.batch_size = batch_size
+
+  return configs
+
 
 def get_save_path(*configs, prefix: str = "runs") -> str:
   """Get string path to save model checkpoints."""
