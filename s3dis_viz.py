@@ -20,21 +20,22 @@ def main(create_pointcloud_dump: bool):
     11: "bookcase",
     12: "board",
   }
-  dataset = create_s3dis_dataset(
+  dataset, _ = create_s3dis_dataset(
     "./data/s3dis/pointcnn/",
-    shuffle_size=100,
+    shuffle_size=1,
     batch_size=1,
     num_points=10000,
     use_normalized_coords=False,
     holdout_area=5,
-    is_train_split=True,
+    is_train_split=False,
     is_deterministic=False,
+    num_classes=13,
+    seed=1,
   )
 
-  # x, y = tuple(tensor for tensor in next(iter(dataset)))
-  # print(f"raw shape = {x.shape} | label shape = {y.shape}")
   x, y = tuple(tf.squeeze(tensor) for tensor in next(iter(dataset)))
   x = x[:3, :]
+  y = tf.argmax(y, axis=0)
   print(f"sample shape = {x.shape} | label shape = {y.shape}")
 
   fig = plt.figure()
@@ -59,8 +60,9 @@ def main(create_pointcloud_dump: bool):
   ax.set_ylabel("Y")
   ax.set_zlabel("Z")
   plt.legend()
-  plt.savefig("s3dis-data-pipeline-output.png")
+  plt.show()
+  # plt.savefig("s3dis-data-pipeline-output.png") # Use for WSL dev
 
 
 if __name__ == "__main__":
-  main(create_pointcloud_dump=True)
+  main(create_pointcloud_dump=False)

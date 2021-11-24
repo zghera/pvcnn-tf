@@ -21,7 +21,7 @@ def create_s3dis_dataset(
   num_classes: int,
   seed: int,
   is_train_split: bool,
-) -> tf.data.Dataset:
+) -> Tuple[tf.data.Dataset, int]:
   """Creates train or test `tf.data.Dataset`.
   Args:
     is_train_split: True if create train dataset. False if create test dataset.
