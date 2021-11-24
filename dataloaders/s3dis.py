@@ -55,7 +55,7 @@ def create_s3dis_dataset(
     lambda label, data_num_points, data,
            use_normalized_coords=use_normalized_coords,
            desired_num_points=num_points,
-           num_classes=num_classes: _random_sample_data(
+           num_classes=num_classes: _pre_process(
       data,
       label,
       data_num_points,
@@ -128,7 +128,7 @@ def _get_file_info(
 
 
 @tf.function
-def _random_sample_data(
+def _pre_process(
   data: tf.Tensor,
   label: tf.Tensor,
   data_num_points: tf.Tensor,
@@ -170,15 +170,13 @@ def _random_sample_data(
   label = tf.gather(label, indices=indices)
 
   # Filter out any points with class labels > num_classes or < 0
+  # fmt: off
   indices = tf.squeeze(
-    tf.where(
-      tf.math.logical_and(
+    tf.where(tf.math.logical_and(
         tf.less_equal(label, num_classes - 1),
         tf.greater_equal(label, 0),
-      )
-    ),
-    1,
-  )
+    )), 1)
+  # fmt: on
   data = tf.gather(data, indices=indices)
   label = tf.cast(tf.gather(label, indices=indices), dtype=tf.int32)
 

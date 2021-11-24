@@ -1,7 +1,8 @@
-"""Evaluation metrics for PVCNN S3DIS dataset."""
+"""Custom evaluation metrics for PVCNN S3DIS dataset."""
 import tensorflow as tf
 import numpy as np
 from keras import backend
+
 
 class IouAccuracy(tf.keras.metrics.Metric):
   """Mean IoU accuracy metric."""
@@ -58,5 +59,4 @@ class IouAccuracy(tf.keras.metrics.Metric):
       self._total_correct,
       (self._total_seen + self._total_positive - self._total_correct),
     )
-    # tf.print("IOU accuracy for each class:", iou, summarize=-1)
     return tf.reduce_sum(iou) / self._num_classes

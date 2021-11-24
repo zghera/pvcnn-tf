@@ -1,7 +1,7 @@
 """PVCNN Custom Layer Implementations."""
 from modeling.layers.mlp import ConvBn, DenseBn
 from modeling.layers.pvconv import PVConv
-from modeling.layers.sub_models import (
+from modeling.layers.components import (
   PointFeaturesBranch,
   CloudFeaturesBranch,
   ClassificationHead,

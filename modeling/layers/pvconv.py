@@ -11,7 +11,7 @@ from ops import trilinear_devoxelize
 
 
 class PVConv(tf.keras.layers.Layer):
-  """The infamous PVConv block."""
+  """The PVConv block."""
 
   def __init__(
     self,
@@ -56,52 +56,30 @@ class PVConv(tf.keras.layers.Layer):
         tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
       )
       self._relu_layers.append(tf.keras.layers.LeakyReLU(alpha=0.1))
-    # Add extra batch norm layer to add before 1st conv3d layer
-    # self._bn_layers.append(
-    #   tf.keras.layers.BatchNormalization(axis=1, epsilon=1e-4)
-    # )
 
     self._point_features = ConvBn(
       out_channels=self._out_channels,
       kernel_regularizer=self._kernel_regularizer,
     )
-
     self._squeeze = tf.keras.layers.Reshape((self._out_channels, -1))
-
     super().build(input_shape)
 
-  # TODO: Delete debugging prints later
   def call(self, inputs, training: bool) -> Tuple[tf.Tensor, tf.Tensor]:
     # IC = input channels | OC = output channels (self._out_channels)
     # features = [B, IC, N]  |  coords = [B, 3, N]
     features, coords = inputs
-    # tf.print("\nfeatures nans =", tf.size(tf.where(tf.math.is_nan(features))))
-    # tf.print("coords nans =", tf.size(tf.where(tf.math.is_nan(coords))))
-    # features = tf.debugging.assert_all_finite(features, "features is nan")
-    # coords = tf.debugging.assert_all_finite(coords, "coords is nan")
 
     voxel_features, voxel_coords = self._voxelization((features, coords))
-    # tf.print("voxel features shape=", voxel_features.shape)
     # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
-    # tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     voxel_features = replace_nans_with_norm(voxel_features)
-    # voxel_features = self._voxelization_nan_filter(voxel_features)
-    # tf.print("voxelization features CLIPPED nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-    # tf.print("voxelization coords nans =", tf.size(tf.where(tf.math.is_nan(voxel_coords))))
-    # voxel_features = tf.debugging.assert_all_finite(voxel_features, "voxelization feat is nan")
-    # voxel_coords = tf.debugging.assert_all_finite(voxel_coords, "voxelization coords is nan")
 
-    # voxel_features = self._bn_layers[-1](voxel_features, training=training)
-    for conv, bn, relu in zip(self._conv_layers, self._bn_layers, self._relu_layers):
+    for conv, bn, relu in zip(
+      self._conv_layers, self._bn_layers, self._relu_layers
+    ):
       voxel_features = conv(voxel_features)
-      voxel_features = replace_nans_with_norm(voxel_features)
-      # tf.print("conv3d out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-      # voxel_features = tf.debugging.assert_all_finite(voxel_features, "conv3d out feat is nan")
       voxel_features = bn(voxel_features, training=training)
-      # voxel_features = replace_nans_with_norm(voxel_features)
       voxel_features = relu(voxel_features)
-      # voxel_features = replace_nans_with_norm(voxel_features)
-    # voxel_features = replace_nans_with_norm(voxel_features)
+    voxel_features = replace_nans_with_norm(voxel_features)
 
     # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)
@@ -109,18 +87,13 @@ class PVConv(tf.keras.layers.Layer):
     voxel_features, _, _ = trilinear_devoxelize(
       voxel_features, voxel_coords, self._resolution, training
     )
-    # tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-    # voxel_features = tf.debugging.assert_all_finite(voxel_features, "devox out feat is nan")
     # |--> voxel_features = [B, OC, N]
     voxel_features = replace_nans_with_norm(voxel_features)
 
     point_features = self._point_features(features, training=training)
-    # tf.print("point feautes nans =", tf.size(tf.where(tf.math.is_nan(point_features))))
     # |--> point_features = [B, OC, N]
     point_features = replace_nans_with_norm(point_features)
 
     fused_features = voxel_features + point_features
-    # tf.print("fused out features nans =", tf.size(tf.where(tf.math.is_nan(fused_features))))
-    # fused_features = tf.debugging.assert_all_finite(fused_features, "fused feat is nan")
     # |--> fused_features = [B, OC, N]
     return fused_features, coords

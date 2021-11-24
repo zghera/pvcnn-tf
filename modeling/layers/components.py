@@ -147,21 +147,13 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
     self._num_points = int(input_shape[-1])
     super().build(input_shape)
 
-  # TODO: Delete debugging prints later
   def call(self, inputs, training: bool) -> tf.Tensor:
-    # print("\nCloudFeaturesBranch inputs =", inputs)
     # Get maximum channel value for each channel over all of the points
     x = tf.math.reduce_max(inputs, axis=-1)
-    # print("\nCloudFeaturesBranch reduced inputs shape =", x.shape)
     for layer in self._layers:
       x = layer(x, training=training)
-      # tf.print("CloudFeaturesBranch layer x out nans =", tf.size(tf.where(tf.math.is_nan(x))))
-      # print("\nCloudFeaturesBranch intermed layer shape =", x.shape)
     x = replace_nans_with_norm(x)
     # Duplicate output tensor for N size num_points dimension
-    # print("\nNon-repeated out tensor = ", x)
-    # print(\nNon-repeated out tensor nan idxs = ", tf.where(tf.math.is_nan(x)))
-    # return tf.stack([x] * 4096, axis=-1)
     return tf.repeat(tf.expand_dims(x, axis=-1), self._num_points, axis=-1)
 
 
@@ -192,6 +184,5 @@ class ClassificationHead(tf.keras.layers.Layer):
     x = inputs
     for layer in self._layers:
       x = layer(x, training=training)
-      # tf.print("ClassificationHead layer x out nans =", tf.size(tf.where(tf.math.is_nan(x))))
     x = replace_nans_with_norm(x)
     return self._softmax(x)

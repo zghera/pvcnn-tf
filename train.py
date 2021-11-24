@@ -1,9 +1,8 @@
-"""PVCNN S3DIS Training."""
+"""PVCNN S3DIS training and evaluation."""
 from typing import Tuple, Iterator, Dict, Optional
 
 import os
 import argparse
-from tensorflow._api.v2 import config
 from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
@@ -13,6 +12,7 @@ from utils.common import get_configs, config_gpu
 
 MetricsDict = Dict[str, tf.keras.metrics.Metric]
 
+
 def get_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("configs", nargs="+")
@@ -21,6 +21,7 @@ def get_args():
   args, _ = parser.parse_known_args()
 
   return args.configs[0], args.eval, args.restart
+
 
 class Train:
   """Train class."""
@@ -72,9 +73,8 @@ class Train:
       print(f"NEW BEST checkpoint at epoch {epoch}! Saved to {save_path}\n\n")
 
   def _save_progress_checkpoint(self, batches_per_epoch: int):
-    # ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
-    # self.progress_manager.save(checkpoint_number=ckpt_num)
-    self.progress_manager.save()
+    ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+    self.progress_manager.save(checkpoint_number=ckpt_num)
 
   def _print_training_results(
     self, epoch: int, iter_in_epoch: Optional[int] = None
@@ -96,24 +96,13 @@ class Train:
     # fmt: on
 
   def _save_train_metrics(self, metrics_dict):
-    metrics_dict["train_loss"].append(
-      self.train_loss_metric.result().numpy()
-    )
+    metrics_dict["train_loss"].append(self.train_loss_metric.result().numpy())
     metrics_dict["train_overall_acc"].append(
       self.train_overall_acc_metric.result().numpy() * 100
     )
     metrics_dict["train_iou_acc"].append(
       self.train_iou_acc_metric.result().numpy() * 100
     )
-    # self.saved_metrics["train_loss"].append(
-    #   self.train_loss_metric.result().numpy()
-    # )
-    # self.saved_metrics["train_overall_acc"].append(
-    #   self.train_overall_acc_metric.result().numpy() * 100
-    # )
-    # self.saved_metrics["train_iou_acc"].append(
-    #   self.train_iou_acc_metric.result().numpy() * 100
-    # )
 
   def _save_val_metrics(self, metrics_dict):
     metrics_dict["val_loss"].append(self.eval_loss_metric.result().numpy())
@@ -123,13 +112,6 @@ class Train:
     metrics_dict["val_iou_acc"].append(
       self.eval_iou_acc_metric.result().numpy() * 100
     )
-    # self.saved_metrics["val_loss"].append(self.eval_loss_metric.result().numpy())
-    # self.saved_metrics["val_overall_acc"].append(
-    #   self.eval_overall_acc_metric.result().numpy() * 100
-    # )
-    # self.saved_metrics["val_iou_acc"].append(
-    #   self.eval_iou_acc_metric.result().numpy() * 100
-    # )
 
   def _save_metrics(self):
     self._save_train_metrics(self.saved_metrics_epoch)
@@ -143,90 +125,28 @@ class Train:
     self.eval_overall_acc_metric.reset_state()
     self.eval_iou_acc_metric.reset_state()
 
-  # TODO: Delete debugging prints later
   @tf.function
-  def train_step(
-    self, sample: tf.Tensor, label: tf.Tensor
-  ) -> None:
+  def train_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One train step."""
-    ######################### Debugging #########################
     with tf.GradientTape() as tape:
       predictions = self.model(sample, training=True)
-      #
-      # TODO: Actually do this patching on the individual layers not the final predicitons
-      predictions_wo_zeros = tf.where(tf.math.is_nan(predictions), tf.zeros_like(predictions), predictions)
-      pred_norm = tf.norm(predictions_wo_zeros)
-      predictions = tf.where(tf.math.is_nan(predictions), tf.fill(predictions.shape, pred_norm), predictions)
-      #
-      # loss = self.loss_fn(label, predictions)
-      ######################### Debugging #########################
-      # tf.print(f"\nlabel shape = {label.shape} | prediction shape = {predictions.shape}")
-      # tf.print("\npredictions")
-      # tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
-      # tf.print("  prediction first value = ", predictions[0,0,0])
-      # tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
-      # tf.print("-----------------")
-      # tf.print(f"\n sum prediction along axis 1 = {tf.reduce_sum(predictions, axis=1)}")
-      # tf.print("---------------------------------------------------------")
-      # tf.print("labels \n---------------------------------------------------------")
-      # tf.print(label)
-      # tf.print(f"\n labels valid one hot = {tf.reduce_all(1 == tf.reduce_sum(label, axis=1))}")
-      # tf.print("---------------------------------------------------------")
-
-      # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.NONE)(label, predictions)
-      # tf.print(f"\nNo Reduction Loss = {loss}")
-      # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.SUM)(label, predictions)
       loss = self.loss_fn(label, predictions)
+      # TODO: Remove later. Used to show model starting to train.
       tf.print("\nLoss = ", loss)
-      # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
-      # if tf.greater(tf.size(tf.where(tf.math.is_nan(loss))), 0):
-      #   raise NanLoss
 
-      #############################################################
     gradients = tape.gradient(loss, self.model.trainable_variables)
-    # tf.print("global gradient norm pre-clip =", tf.linalg.global_norm(gradients))
-    # gradients, _ = tf.clip_by_global_norm(gradients, 500000.0)
-    # tf.print("global gradient norm post-clip =", tf.linalg.global_norm(gradients))
-
-    # num_grad_nans = 0
-    # for gradient in gradients:
-    #   num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
-      # gradient = tf.debugging.assert_all_finite(gradient, "gradient is nan")
-    #   # if tf.greater(tf.size(tf.where(tf.math.is_nan(gradient))), 0):
-    #   #   raise NanGradients
-    # tf.print("gradient nans =", num_grad_nans)
     nan_clipped_grads = []
     for gradient in gradients:
-      nan_clipped_grads.append(tf.where(tf.math.is_nan(gradient), tf.ones_like(gradient), gradient))
-    # global_grad_norm = tf.linalg.global_norm(grads_wo_zeros)
-    # tf.print("global_grad_norm =", global_grad_norm)
-    # nan_clipped_grads = []
-    # for gradient in gradients:
-    #   nan_clipped_grads.append(tf.where(tf.math.is_nan(gradient), tf.fill(gradient.shape, global_grad_norm), gradient))
-    # num_grad_nans = 0
-    # for gradient in nan_clipped_grads:
-    #   num_grad_nans += tf.size(tf.where(tf.math.is_nan(gradient)))
-    # tf.print("gradient nans AFTER removing nans =", num_grad_nans)
-
+      nan_clipped_grads.append(
+        tf.where(tf.math.is_nan(gradient), tf.ones_like(gradient), gradient)
+      )
     self.optimizer.apply_gradients(
       zip(nan_clipped_grads, self.model.trainable_variables)
     )
 
-    # num_weight_nans = 0
-    # for layer in self.model.layers:
-    #   for weight in layer.weights:
-    #     num_weight_nans += tf.size(tf.where(tf.math.is_nan(weight)))
-        # weight = tf.debugging.assert_all_finite(weight, f"layer {str(layer.name)} is nan")
-    # tf.print("weights nans =", num_weight_nans)
-
     self.train_loss_metric.update_state(loss)
     self.train_overall_acc_metric.update_state(label, predictions)
-    # tf.print("categ acc =", self.train_overall_acc_metric.result())
     self.train_iou_acc_metric.update_state(label, predictions)
-    # tf.print("iou acc =", self.train_iou_acc_metric.result())
-
-    # tf.print("\n-------------------------------------------------------------------------\n")
-    #############################################################
 
     self.train_iter_in_epoch.assign_add(1)
 
@@ -234,21 +154,12 @@ class Train:
   def test_step(self, sample: tf.Tensor, label: tf.Tensor) -> None:
     """One test step."""
     predictions = self.model(sample, training=False)
-    # tf.print("\npredictions \n----------")
-    # tf.print("  prediction nans =", tf.where(tf.math.is_nan(predictions)))
-    # tf.print("  prediction first value = ", predictions[0,0,0])
-    # tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
-    # tf.print("-----------------\n")
     loss = self.loss_fn(label, predictions)
-    tf.print("\nLoss = ", loss)
-    # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
-    # tf.print("\n-------------------------------------------------------------------------\n")
 
     self.eval_loss_metric.update_state(loss)
     self.eval_overall_acc_metric.update_state(label, predictions)
     self.eval_iou_acc_metric.update_state(label, predictions)
 
-  # TODO: Get rid of all the NaN garbage if I fix this
   def train(
     self,
     train_dataset: tf.data.Dataset,
@@ -257,51 +168,41 @@ class Train:
     test_dataset_len: int,
   ) -> MetricsDict:
     """Custom training loop."""
-    try:
-      starting_iter = int(self.train_iter_in_epoch)
-      for epoch in range(int(self.train_epoch), self.epochs):
-        print(f"\nEpoch {epoch}:")
-        for i, (x, y) in enumerate(
-          tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
-        ):
-          if i < starting_iter: continue
+    starting_iter = int(self.train_iter_in_epoch)
+    for epoch in range(int(self.train_epoch), self.epochs):
+      print(f"\nEpoch {epoch}:")
+      for i, (x, y) in enumerate(
+        tqdm(train_dataset, total=train_dataset_len, desc="Training set: ")
+      ):
+        if i < starting_iter:
+          continue
 
-          self.train_step(x, y)
-          if np.isnan(self.train_loss_metric.result()):
-            print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
-            return self.saved_metrics_epoch, self.saved_metrics_iter # TODO: Maybe remove this if we keep finally
-          self._save_train_metrics(self.saved_metrics_iter)
-          self._save_progress_checkpoint(train_dataset_len)
+        self.train_step(x, y)
+        if np.isnan(self.train_loss_metric.result()):
+          print(f"Failed on epoch {epoch} train step {i} due to NaN tensors.")
+          return self.saved_metrics_epoch, self.saved_metrics_iter
+        self._save_train_metrics(self.saved_metrics_iter)
+        self._save_progress_checkpoint(train_dataset_len)
 
-        starting_iter = 0  # Only start part-way through epoch on 1st epoch
-        self.train_iter_in_epoch.assign(0)
+      starting_iter = 0  # Only start part-way through epoch on 1st epoch
+      self.train_iter_in_epoch.assign(0)
 
-        for i, (x, y) in enumerate(
-          tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
-        ):
-          self.test_step(x, y)
-          if np.isnan(self.eval_loss_metric.result()):
-            print(f"Failed on epoch {epoch} val step {i}: : NaNs found in tensors.")
-            # self.saved_metrics["val_loss"] += [0] * (test_dataset_len - i)
-            # self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
-            # self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
-            return self.saved_metrics_epoch, self.saved_metrics_iter # TODO: Maybe remove this if we keep finally
-          self._save_val_metrics(self.saved_metrics_iter)
+      for i, (x, y) in enumerate(
+        tqdm(test_dataset, total=test_dataset_len, desc="Validation set: ")
+      ):
+        self.test_step(x, y)
+        if np.isnan(self.eval_loss_metric.result()):
+          print(f"Failed on epoch {epoch} val step {i} due to NaN tensors.")
+          return self.saved_metrics_epoch, self.saved_metrics_iter
+        self._save_val_metrics(self.saved_metrics_iter)
 
-        self._print_training_results(epoch)
-        self._save_if_best_checkpoint(epoch)
-        self._save_metrics()
-        self._reset_metrics()
+      self._print_training_results(epoch)
+      self._save_if_best_checkpoint(epoch)
+      self._save_metrics()
+      self._reset_metrics()
 
-        self.train_epoch.assign_add(1)
+      self.train_epoch.assign_add(1)
 
-    except KeyboardInterrupt:
-      print("KeyboardInterrupt received. Stopping training and plotting.")
-    finally:
-      return self.saved_metrics_epoch, self.saved_metrics_iter
-
-
-  # TODO: Need to do this more accurately like orig implementation?
   def eval(
     self, test_dataset_it: Iterator[tf.Tensor], test_dataset_len: int
   ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -322,16 +223,16 @@ class Train:
     )
 
 
-def plot_train_results_iter(train_metrics: MetricsDict, save_path: str) -> None:
+def plot_train_results_iter(metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
 
-  ax1.plot(train_metrics["train_loss"])
+  ax1.plot(metrics["train_loss"])
   ax1.set_title("Train Loss vs Iteration")
   ax1.set_ylabel("Loss")
   ax1.set_xlabel("Iteration")
 
-  ax2.plot(train_metrics["train_overall_acc"])
-  ax2.plot(train_metrics["train_iou_acc"])
+  ax2.plot(metrics["train_overall_acc"])
+  ax2.plot(metrics["train_iou_acc"])
   ax2.legend(
     ["Train Overall", "Train IoU"],
     loc="upper left",
@@ -343,25 +244,21 @@ def plot_train_results_iter(train_metrics: MetricsDict, save_path: str) -> None:
   plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
   plt.savefig(plot_path)
 
-def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None:
+
+def plot_train_results_epoch(metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
 
-  print("------------------- Metrics ------------------- ")
-  for name, metric in train_metrics.items():
-    print(f"{name} = {metric}")
-  print("----------------------------------------------- ")
-
-  ax1.plot(train_metrics["train_loss"])
-  ax1.plot(train_metrics["val_loss"])
+  ax1.plot(metrics["train_loss"])
+  ax1.plot(metrics["val_loss"])
   ax1.legend(["Train Set", "Validation Set"], loc="upper right")
   ax1.set_title("Loss versus Epoch")
   ax1.set_ylabel("Loss")
   ax1.set_xlabel("Epoch")
 
-  ax2.plot(train_metrics["train_overall_acc"])
-  ax2.plot(train_metrics["train_iou_acc"])
-  ax2.plot(train_metrics["val_overall_acc"])
-  ax2.plot(train_metrics["val_iou_acc"])
+  ax2.plot(metrics["train_overall_acc"])
+  ax2.plot(metrics["train_iou_acc"])
+  ax2.plot(metrics["val_overall_acc"])
+  ax2.plot(metrics["val_iou_acc"])
   ax2.legend(
     ["Train Overall", "Train IoU", "Validation Overall", "Validation IoU"],
     loc="upper left",
@@ -372,6 +269,7 @@ def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None
 
   plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
   plt.savefig(plot_path)
+
 
 def main():
   #################
@@ -408,9 +306,8 @@ def main():
     "val_overall_acc": [],
     "val_iou_acc": [],
   }
-  # TODO: get rid of later hopefully
-  saved_metrics_iter = {k : v[:] for k,v in saved_metrics_epoch.items()}
-
+  # TODO: get rid of later once train for multiple epochs
+  saved_metrics_iter = {k: v[:] for k, v in saved_metrics_epoch.items()}
 
   # Init training checkpoint objs to determine how we initialize training objs
   cur_epoch = tf.Variable(0)
@@ -462,8 +359,8 @@ def main():
     train_iou_metric=configs.metrics.train.iou(),
     eval_overall_metric=configs.metrics.eval.overall(),
     eval_iou_metric=configs.metrics.eval.iou(),
-    saved_metrics_epoch = saved_metrics_epoch,
-    saved_metrics_iter = saved_metrics_iter,
+    saved_metrics_epoch=saved_metrics_epoch,
+    saved_metrics_iter=saved_metrics_iter,
   )
 
   if configs.eval.is_evaluating:
@@ -477,8 +374,4 @@ def main():
 
 
 if __name__ == "__main__":
-  ################# Debugging #################
-  # tf.data.experimental.enable_debug_mode()
-  # tf.config.run_functions_eagerly(True)
-  #############################################
   main()

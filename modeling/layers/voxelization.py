@@ -8,9 +8,7 @@ from ops import avg_voxelize
 class Voxelization(tf.keras.layers.Layer):
   """Voxelization layer."""
 
-  def __init__(
-    self, resolution: int, normalize: bool, eps: float, **kwargs
-  ):
+  def __init__(self, resolution: int, normalize: bool, eps: float, **kwargs):
     super().__init__(**kwargs)
     self._resolution = resolution
     self._normalize = normalize
