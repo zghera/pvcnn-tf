@@ -94,13 +94,14 @@ class PVConv(tf.keras.layers.Layer):
     # voxel_features = self._bn_layers[-1](voxel_features, training=training)
     for conv, bn, relu in zip(self._conv_layers, self._bn_layers, self._relu_layers):
       voxel_features = conv(voxel_features)
+      voxel_features = replace_nans_with_norm(voxel_features)
       # tf.print("conv3d out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
       # voxel_features = tf.debugging.assert_all_finite(voxel_features, "conv3d out feat is nan")
       voxel_features = bn(voxel_features, training=training)
       # voxel_features = replace_nans_with_norm(voxel_features)
       voxel_features = relu(voxel_features)
       # voxel_features = replace_nans_with_norm(voxel_features)
-    voxel_features = replace_nans_with_norm(voxel_features)
+    # voxel_features = replace_nans_with_norm(voxel_features)
 
     # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)

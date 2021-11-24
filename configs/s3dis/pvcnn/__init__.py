@@ -1,7 +1,7 @@
 """Experiment configurations for S3DIS PVCNN model."""
 # TODO: If TF's CosineDecay much different from Pytorch's equivalent?
 import tensorflow as tf
-from tensorflow.keras.optimizers.schedules import CosineDecay
+from tensorflow.keras.optimizers.schedules import CosineDecayRestarts
 from tensorflow.keras.regularizers import L2
 
 from modeling import PVCNN, AttentionSchedule
@@ -25,9 +25,9 @@ configs.dataset.num_points = 4096
 # train: scheduler
 # configs.train.optimizer.learning_rate = 1e-3
 configs.train.optimizer.learning_rate = Config(AttentionSchedule)
-configs.train.optimizer.learning_rate.d_model = 120 # Orig: 128
-configs.train.optimizer.learning_rate.warmup_steps = 3600 # Orig: 4000
+configs.train.optimizer.learning_rate.d_model = 100 # Orig: 128
+configs.train.optimizer.learning_rate.warmup_steps = 1000 # Orig: 4000
 configs.train.optimizer.learning_rate.eps = 1e-8
-# configs.train.optimizer.learning_rate = Config(CosineDecay)
+# configs.train.optimizer.learning_rate = Config(CosineDecayRestarts)
 # configs.train.optimizer.learning_rate.initial_learning_rate = 1e-3
-# configs.train.optimizer.learning_rate.decay_steps = configs.train.num_epochs
+# configs.train.optimizer.learning_rate.first_decay_steps = 3200 # Empirical

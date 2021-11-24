@@ -39,7 +39,8 @@ class Train:
     train_iou_metric: tf.keras.metrics.Metric,
     eval_overall_metric: tf.keras.metrics.Metric,
     eval_iou_metric: tf.keras.metrics.Metric,
-    saved_metrics: MetricsDict,
+    saved_metrics_epoch: MetricsDict,
+    saved_metrics_iter: MetricsDict,
   ) -> None:
     self.epochs = epochs
     self.model = model
@@ -56,7 +57,8 @@ class Train:
     self.eval_iou_acc_metric = eval_iou_metric
     self.eval_loss_metric = tf.keras.metrics.Mean(name="eval_loss")
     self._smallest_val_loss = None
-    self.saved_metrics = saved_metrics
+    self.saved_metrics_epoch = saved_metrics_epoch
+    self.saved_metrics_iter = saved_metrics_iter
     self.autotune = tf.data.experimental.AUTOTUNE
 
   def _save_if_best_checkpoint(self, epoch: int) -> None:
@@ -70,8 +72,9 @@ class Train:
       print(f"NEW BEST checkpoint at epoch {epoch}! Saved to {save_path}\n\n")
 
   def _save_progress_checkpoint(self, batches_per_epoch: int):
-    ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
-    self.progress_manager.save(checkpoint_number=ckpt_num)
+    # ckpt_num = batches_per_epoch * self.train_epoch + self.train_iter_in_epoch
+    # self.progress_manager.save(checkpoint_number=ckpt_num)
+    self.progress_manager.save()
 
   def _print_training_results(
     self, epoch: int, iter_in_epoch: Optional[int] = None
@@ -92,29 +95,45 @@ class Train:
     )
     # fmt: on
 
-  def _save_train_metrics(self):
-    self.saved_metrics["train_loss"].append(
+  def _save_train_metrics(self, metrics_dict):
+    metrics_dict["train_loss"].append(
       self.train_loss_metric.result().numpy()
     )
-    self.saved_metrics["train_overall_acc"].append(
+    metrics_dict["train_overall_acc"].append(
       self.train_overall_acc_metric.result().numpy() * 100
     )
-    self.saved_metrics["train_iou_acc"].append(
+    metrics_dict["train_iou_acc"].append(
       self.train_iou_acc_metric.result().numpy() * 100
     )
+    # self.saved_metrics["train_loss"].append(
+    #   self.train_loss_metric.result().numpy()
+    # )
+    # self.saved_metrics["train_overall_acc"].append(
+    #   self.train_overall_acc_metric.result().numpy() * 100
+    # )
+    # self.saved_metrics["train_iou_acc"].append(
+    #   self.train_iou_acc_metric.result().numpy() * 100
+    # )
 
-  def _save_val_metrics(self):
-    self.saved_metrics["val_loss"].append(self.eval_loss_metric.result().numpy())
-    self.saved_metrics["val_overall_acc"].append(
+  def _save_val_metrics(self, metrics_dict):
+    metrics_dict["val_loss"].append(self.eval_loss_metric.result().numpy())
+    metrics_dict["val_overall_acc"].append(
       self.eval_overall_acc_metric.result().numpy() * 100
     )
-    self.saved_metrics["val_iou_acc"].append(
+    metrics_dict["val_iou_acc"].append(
       self.eval_iou_acc_metric.result().numpy() * 100
     )
+    # self.saved_metrics["val_loss"].append(self.eval_loss_metric.result().numpy())
+    # self.saved_metrics["val_overall_acc"].append(
+    #   self.eval_overall_acc_metric.result().numpy() * 100
+    # )
+    # self.saved_metrics["val_iou_acc"].append(
+    #   self.eval_iou_acc_metric.result().numpy() * 100
+    # )
 
   def _save_metrics(self):
-    self._save_train_metrics()
-    self._save_val_metrics()
+    self._save_train_metrics(self.saved_metrics_epoch)
+    self._save_val_metrics(self.saved_metrics_epoch)
 
   def _reset_metrics(self):
     self.train_loss_metric.reset_state()
@@ -158,7 +177,7 @@ class Train:
       # tf.print(f"\nNo Reduction Loss = {loss}")
       # loss = tf.keras.losses.CategoricalCrossentropy(axis=1, reduction = tf.keras.losses.Reduction.SUM)(label, predictions)
       loss = self.loss_fn(label, predictions)
-      # tf.print("\nLoss = ", loss)
+      tf.print("\nLoss = ", loss)
       # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
       # if tf.greater(tf.size(tf.where(tf.math.is_nan(loss))), 0):
       #   raise NanLoss
@@ -221,7 +240,7 @@ class Train:
     # tf.print("  prediction all same value = ", tf.reduce_all(predictions == predictions[0,0,0]))
     # tf.print("-----------------\n")
     loss = self.loss_fn(label, predictions)
-    # tf.print("\nLoss = ", loss)
+    tf.print("\nLoss = ", loss)
     # loss = tf.debugging.assert_all_finite(loss, "loss is nan")
     # tf.print("\n-------------------------------------------------------------------------\n")
 
@@ -250,8 +269,8 @@ class Train:
           self.train_step(x, y)
           if np.isnan(self.train_loss_metric.result()):
             print(f"Failed on epoch {epoch} train step {i}: NaNs found in tensors.")
-            return self.saved_metrics # TODO: Maybe remove this if we keep finally
-          # self._save_train_metrics()
+            return self.saved_metrics_epoch, self.saved_metrics_iter # TODO: Maybe remove this if we keep finally
+          self._save_train_metrics(self.saved_metrics_iter)
           self._save_progress_checkpoint(train_dataset_len)
 
         starting_iter = 0  # Only start part-way through epoch on 1st epoch
@@ -266,8 +285,8 @@ class Train:
             # self.saved_metrics["val_loss"] += [0] * (test_dataset_len - i)
             # self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
             # self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
-            return self.saved_metrics # TODO: Maybe remove this if we keep finally
-          # self._save_val_metrics()
+            return self.saved_metrics_epoch, self.saved_metrics_iter # TODO: Maybe remove this if we keep finally
+          self._save_val_metrics(self.saved_metrics_iter)
 
         self._print_training_results(epoch)
         self._save_if_best_checkpoint(epoch)
@@ -279,7 +298,7 @@ class Train:
     except KeyboardInterrupt:
       print("KeyboardInterrupt received. Stopping training and plotting.")
     finally:
-      return self.saved_metrics
+      return self.saved_metrics_epoch, self.saved_metrics_iter
 
 
   # TODO: Need to do this more accurately like orig implementation?
@@ -303,14 +322,8 @@ class Train:
     )
 
 
-'''
 def plot_train_results_iter(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
-
-  print("----------- metrics -----------")
-  for k, v in train_metrics.items():
-    print(k, v)
-  print("------------------------------")
 
   ax1.plot(train_metrics["train_loss"])
   ax1.set_title("Train Loss vs Iteration")
@@ -323,13 +336,12 @@ def plot_train_results_iter(train_metrics: MetricsDict, save_path: str) -> None:
     ["Train Overall", "Train IoU"],
     loc="upper left",
   )
-  ax2.set_title("Accuracy vs Iteration")
+  ax2.set_title("Train Accuracy vs Iteration")
   ax2.set_ylabel("Accuracy")
   ax2.set_xlabel("Iteration")
 
   plot_path = os.path.join(save_path, "train-metrics-vs-epoch.png")
   plt.savefig(plot_path)
-'''
 
 def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
@@ -388,7 +400,7 @@ def main():
   loss_fn = configs.train.loss_fn()
   model = configs.model()
   optimizer = configs.train.optimizer()
-  saved_metrics: MetricsDict = {
+  saved_metrics_epoch: MetricsDict = {
     "train_loss": [],
     "train_overall_acc": [],
     "train_iou_acc": [],
@@ -396,6 +408,9 @@ def main():
     "val_overall_acc": [],
     "val_iou_acc": [],
   }
+  # TODO: get rid of later hopefully
+  saved_metrics_iter = {k : v[:] for k,v in saved_metrics_epoch.items()}
+
 
   # Init training checkpoint objs to determine how we initialize training objs
   cur_epoch = tf.Variable(0)
@@ -405,7 +420,8 @@ def main():
     cur_iter_in_epoch=cur_iter_in_epoch,
     model=model,
     optimizer=optimizer,
-    saved_metrics=saved_metrics,
+    saved_metrics_epoch=saved_metrics_epoch,
+    saved_metrics_iter=saved_metrics_iter,
   )
   progress_manager = tf.train.CheckpointManager(
     checkpoint,
@@ -446,16 +462,18 @@ def main():
     train_iou_metric=configs.metrics.train.iou(),
     eval_overall_metric=configs.metrics.eval.overall(),
     eval_iou_metric=configs.metrics.eval.iou(),
-    saved_metrics=saved_metrics,
+    saved_metrics_epoch = saved_metrics_epoch,
+    saved_metrics_iter = saved_metrics_iter,
   )
 
   if configs.eval.is_evaluating:
     train_obj.eval(test_dataset, test_dataset_len)
-  train_metrics = train_obj.train(
+  train_metrics_epoch, train_metrics_iter = train_obj.train(
     train_dataset, test_dataset, train_dataset_len, test_dataset_len
   )
 
-  plot_train_results_epoch(train_metrics, configs.train.save_path)
+  plot_train_results_epoch(train_metrics_epoch, configs.train.save_path)
+  plot_train_results_iter(train_metrics_iter, configs.train.save_path)
 
 
 if __name__ == "__main__":
