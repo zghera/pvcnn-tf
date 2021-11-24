@@ -1,2 +1,6 @@
 tensorflow==2.6.2
 tensorflow-io==0.21
+numpy
+h5py
+plyfile
+tqdm
