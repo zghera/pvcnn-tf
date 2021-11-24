@@ -263,10 +263,10 @@ class Train:
           self.test_step(x, y)
           if np.isnan(self.eval_loss_metric.result()):
             print(f"Failed on epoch {epoch} val step {i}: : NaNs found in tensors.")
-            self.saved_metrics["val_loss"] += [0] * (test_dataset_len - i)
-            self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
-            self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
-            return self.saved_metrics# TODO: Maybe remove this if we keep finally
+            # self.saved_metrics["val_loss"] += [0] * (test_dataset_len - i)
+            # self.saved_metrics["val_overall_acc"] += [0] * (test_dataset_len - i)
+            # self.saved_metrics["val_iou_acc"] += [0] * (test_dataset_len - i)
+            return self.saved_metrics # TODO: Maybe remove this if we keep finally
           # self._save_val_metrics()
 
         self._print_training_results(epoch)
@@ -333,6 +333,11 @@ def plot_train_results_iter(train_metrics: MetricsDict, save_path: str) -> None:
 
 def plot_train_results_epoch(train_metrics: MetricsDict, save_path: str) -> None:
   _, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True, figsize=(10, 10))
+
+  print("------------------- Metrics ------------------- ")
+  for name, metric in train_metrics.items():
+    print(f"{name} = {metric}")
+  print("----------------------------------------------- ")
 
   ax1.plot(train_metrics["train_loss"])
   ax1.plot(train_metrics["val_loss"])

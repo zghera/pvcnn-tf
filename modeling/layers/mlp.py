@@ -1,6 +1,7 @@
 """MLP blocks."""
 from typing import Optional, Tuple, Union
 import tensorflow as tf
+from modeling.layers.nan_replace import replace_nans_with_norm
 
 
 class ConvBn(tf.keras.layers.Layer):
@@ -42,7 +43,9 @@ class ConvBn(tf.keras.layers.Layer):
 
   def _call(self, inputs, training) -> tf.Tensor:
     x = self._conv(inputs)
+    x = replace_nans_with_norm(x)
     x = self._bn(x, training=training)
+    x = replace_nans_with_norm(x)
     return self._relu(x)
 
   def call(
@@ -80,5 +83,7 @@ class DenseBn(tf.keras.layers.Layer):
 
   def call(self, inputs, training: bool) -> tf.Tensor:
     x = self._fc(inputs)
+    x = replace_nans_with_norm(x)
     x = self._bn(x, training=training)
+    x = replace_nans_with_norm(x)
     return self._relu(x)

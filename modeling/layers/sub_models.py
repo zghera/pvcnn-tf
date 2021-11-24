@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from modeling.layers.mlp import ConvBn, DenseBn
 from modeling.layers.pvconv import PVConv
+from modeling.layers.nan_replace import replace_nans_with_norm
 
 
 def create_pointnet_components(
@@ -156,6 +157,7 @@ class CloudFeaturesBranch(tf.keras.layers.Layer):
       x = layer(x, training=training)
       # tf.print("CloudFeaturesBranch layer x out nans =", tf.size(tf.where(tf.math.is_nan(x))))
       # print("\nCloudFeaturesBranch intermed layer shape =", x.shape)
+    x = replace_nans_with_norm(x)
     # Duplicate output tensor for N size num_points dimension
     # print("\nNon-repeated out tensor = ", x)
     # print(\nNon-repeated out tensor nan idxs = ", tf.where(tf.math.is_nan(x)))
@@ -191,4 +193,5 @@ class ClassificationHead(tf.keras.layers.Layer):
     for layer in self._layers:
       x = layer(x, training=training)
       # tf.print("ClassificationHead layer x out nans =", tf.size(tf.where(tf.math.is_nan(x))))
+    x = replace_nans_with_norm(x)
     return self._softmax(x)

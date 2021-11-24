@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from modeling.layers.voxelization import Voxelization
 from modeling.layers.mlp import ConvBn
+from modeling.layers.nan_replace import replace_nans_with_norm
 
 from ops import trilinear_devoxelize
 
@@ -69,12 +70,6 @@ class PVConv(tf.keras.layers.Layer):
 
     super().build(input_shape)
 
-  @staticmethod
-  def replace_nans_with_norm(has_nans: tf.Tensor) -> tf.Tensor:
-    repl_nans_with_zeros = tf.where(tf.math.is_nan(has_nans), tf.zeros_like(has_nans), has_nans)
-    norm = tf.norm(repl_nans_with_zeros)
-    return tf.where(tf.math.is_nan(has_nans), tf.fill(has_nans.shape, norm), has_nans)
-
   # TODO: Delete debugging prints later
   def call(self, inputs, training: bool) -> Tuple[tf.Tensor, tf.Tensor]:
     # IC = input channels | OC = output channels (self._out_channels)
@@ -89,7 +84,7 @@ class PVConv(tf.keras.layers.Layer):
     # tf.print("voxel features shape=", voxel_features.shape)
     # |--> voxel_features = [B, IC, R, R, R]  |  voxel_coords = [B, 3, N]
     # tf.print("voxelization features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
-    voxel_features = self.replace_nans_with_norm(voxel_features)
+    voxel_features = replace_nans_with_norm(voxel_features)
     # voxel_features = self._voxelization_nan_filter(voxel_features)
     # tf.print("voxelization features CLIPPED nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     # tf.print("voxelization coords nans =", tf.size(tf.where(tf.math.is_nan(voxel_coords))))
@@ -102,7 +97,10 @@ class PVConv(tf.keras.layers.Layer):
       # tf.print("conv3d out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
       # voxel_features = tf.debugging.assert_all_finite(voxel_features, "conv3d out feat is nan")
       voxel_features = bn(voxel_features, training=training)
+      # voxel_features = replace_nans_with_norm(voxel_features)
       voxel_features = relu(voxel_features)
+      # voxel_features = replace_nans_with_norm(voxel_features)
+    voxel_features = replace_nans_with_norm(voxel_features)
 
     # |--> voxel_features = [B, OC, R, R, R]
     voxel_features = self._squeeze(voxel_features)
@@ -113,12 +111,12 @@ class PVConv(tf.keras.layers.Layer):
     # tf.print("devox out features nans =", tf.size(tf.where(tf.math.is_nan(voxel_features))))
     # voxel_features = tf.debugging.assert_all_finite(voxel_features, "devox out feat is nan")
     # |--> voxel_features = [B, OC, N]
-    voxel_features = self.replace_nans_with_norm(voxel_features)
+    voxel_features = replace_nans_with_norm(voxel_features)
 
     point_features = self._point_features(features, training=training)
     # tf.print("point feautes nans =", tf.size(tf.where(tf.math.is_nan(point_features))))
     # |--> point_features = [B, OC, N]
-    point_features = self.replace_nans_with_norm(point_features)
+    point_features = replace_nans_with_norm(point_features)
 
     fused_features = voxel_features + point_features
     # tf.print("fused out features nans =", tf.size(tf.where(tf.math.is_nan(fused_features))))
