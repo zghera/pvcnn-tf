@@ -21,16 +21,20 @@ python data/s3dis/prepare_data.py -d [path to unzipped dataset dir]
 ```
 
 You can run [`s3dis_viz.py`](https://github.com/zghera/pvcnn-tf/blob/master/s3dis_viz.py) for a visualizaion of the dataset. Here is one example output with clutter, ceiling, floor, and wall points removed:
-<p align="center"><img src="/assets/s3dis-data-pipeline-output.png" alt="s3dis-data-pipeline-output" width="500"/></p>
+<p align="center"><img src="/assets/s3dis-data-pipeline-output.png" alt="s3dis-data-pipeline-output" width="600"/></p>
 
 # Performance of Pretrained Models
-TODO
+This project is still a work in progress. Numerical instabilities while training have impeded full training of the model to obtain performance results. However, the approximate 4x reduction in loss and 35% mean IoU accuracy acheived in the first 2500 iterations of the first epoch (see Figure below) suggests that the model was in fact learning up until crashing (i.e. NaN tensors).
+
+<p align="center"><img src="/assets/train-metrics-vs-epoch.png" alt="s3dis-data-pipeline-output" width="600"/></p>
+
+For more details, please see the "Experiment Results and Dicussion" section of the [final paper](/assets/ECE_570_Final_Paper__Point_Voxel_CNN_for_Efficient_3D_Deep_Learning_in_TensorFlow.pdf) associated with this project.
 
 # Evaluating Pretrained Models
-TODO
+In Progress.
 
 # Training
-TODO
+In Progress.
 
 # License 
 This repository is released under the MIT license. This includes the [license](https://github.com/mit-han-lab/pvcnn/blob/master/LICENSE) from the original authors. See [LICENSE](https://github.com/zghera/pvcnn-tf/blob/master/LICENSE) for additional details.
