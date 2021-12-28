@@ -282,6 +282,12 @@ def main():
   configs = get_configs(configs_path, is_evaluating, restart_training)
   tf.random.set_seed(configs.seed)
   np.random.seed(configs.seed)
+
+  # TODO: Remove after finished debugging
+  tf.debugging.experimental.enable_dump_debug_info(
+    "/tmp/tfdbg2_logdir",
+    tensor_debug_mode="FULL_HEALTH",
+    circular_buffer_size=-1)
   print("------------ Configuration ------------")
   print(configs)
   print("---------------------------------------")
